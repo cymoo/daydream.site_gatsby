@@ -3,7 +3,7 @@ title: Hello World
 date: "2015-05-01T22:12:03.284Z"
 ---
 
-This is my first post on my new fake blog! How exciting!
+This is my first post on my new ~~fake blog~~! How exciting!
 
 I'm sure I'll write a lot more interesting things in the future.
 
@@ -44,7 +44,7 @@ This is a paragraph.
 
     Header 1
     ========
-
+    
     Header 2
     --------
 
@@ -110,11 +110,11 @@ This is a paragraph.
 - Red
 - Green
 - Blue
-
+<br />
 * Red
 * Green
 * Blue
-
+<br />
 - Red
 - Green
 - Blue
@@ -166,7 +166,7 @@ Paragraph:
 <!-- -->
 
     Paragraph:
-
+    
         Code
 
 ---
@@ -180,13 +180,13 @@ Paragraph:
 ---
 
     * * *
-
+    
     ***
-
+    
     *****
-
+    
     - - -
-
+    
     ---------------------------------------
 
 This is [an example](http://example.com "Example") link.
@@ -198,11 +198,11 @@ This is [an example][id] reference-style link.
 [id]: http://example.com "Optional Title"
 
     This is [an example](http://example.com "Example") link.
-
+    
     [This link](http://example.com) has no title attr.
-
+    
     This is [an example] [id] reference-style link.
-
+    
     [id]: http://example.com "Optional Title"
 
 _single asterisks_
@@ -214,11 +214,11 @@ _single underscores_
 **double underscores**
 
     *single asterisks*
-
+    
     _single underscores_
-
+    
     **double asterisks**
-
+    
     __double underscores__
 
 This paragraph has some `code` in it.

@@ -19,7 +19,7 @@ print('foo')
 The Big Oxmox advised her not to do so, because there were thousands of bad
 Commas, wild Question Marks and devious Semikoli, but the Little Blind Text
 didn’t listen. She packed her seven versalia, put her initial into the belt and
-made herself on the way.
+made herself on the way :smile:.
 
 - [x] Python is a good language
   * aaaaaaaa
@@ -34,8 +34,8 @@ abc
 - keep calm and carry on
 - Well uncritical so misled
   - this is very interesting
-     * foobar
-     * oh, yeah
+      * foobar
+      * oh, yeah
   - this is lovely
 - Goodness much until that fluid owl
 
