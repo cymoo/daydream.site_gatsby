@@ -8,7 +8,7 @@ import SEO from "../components/seo"
 const BlogPostTemplate = ({ data, pageContext, location }) => {
   const post = data.markdownRemark
   const img = post.frontmatter.coverImage?.childImageSharp?.fluid
-  const siteTitle = data.site.siteMetadata?.title || `Title`
+  const siteTitle = data.site.siteMetadata.title
   const { previous, next } = pageContext
 
   return (
@@ -17,11 +17,7 @@ const BlogPostTemplate = ({ data, pageContext, location }) => {
         title={post.frontmatter.title}
         description={post.frontmatter.description || post.excerpt}
       />
-      <article
-        className="blog-post"
-        itemScope
-        itemType="http://schema.org/Article"
-      >
+      <article itemScope itemType="http://schema.org/Article">
         <header>
           {img && (
             <div style={{ marginTop: "2rem" }}>
@@ -31,30 +27,26 @@ const BlogPostTemplate = ({ data, pageContext, location }) => {
           <h1 itemProp="headline" style={{ marginTop: 0, paddingTop: 30 }}>
             {post.frontmatter.title}
           </h1>
-          <p style={{ marginTop: "1rem", color: "var(--color-secondary)" }}>
-            {post.frontmatter.date}
-          </p>
+          {post.frontmatter.date && (
+            <p style={{ marginTop: "1rem", color: "var(--color-secondary)" }}>
+              {post.frontmatter.date}
+            </p>
+          )}
         </header>
         <div
           dangerouslySetInnerHTML={{ __html: post.html }}
           itemProp="articleBody"
         />
-        {/*<footer>*/}
-        {/*  <Bio />*/}
-        {/*</footer>*/}
       </article>
-      <nav
-        className="blog-post-nav"
-        style={{ marginTop: 30, marginBottom: 45 }}
-      >
+      <nav style={{ marginTop: 30, marginBottom: 45 }}>
         <ul
           style={{
             display: `flex`,
             flexWrap: `wrap`,
             justifyContent: `space-between`,
-            listStyle: `none`,
             padding: 0,
             margin: 0,
+            listStyle: `none`,
           }}
         >
           <li style={{ listStyle: "none" }}>

@@ -6,7 +6,7 @@ import Layout from "../components/layout"
 import SEO from "../components/seo"
 
 const BlogIndex = ({ data, location }) => {
-  const siteTitle = data.site.siteMetadata?.title || `Title`
+  const siteTitle = data.site.siteMetadata.title
   const posts = data.allMarkdownRemark.nodes.filter(
     node => node.frontmatter.visible !== false
   )
@@ -14,29 +14,25 @@ const BlogIndex = ({ data, location }) => {
   if (posts.length === 0) {
     return (
       <Layout location={location} title={siteTitle}>
-        <SEO title="All posts" />
+        <SEO title="Home" />
         <Bio />
-        <p>
-          No blog posts found. Add markdown posts to "content/blog" (or the
-          directory you specified for the "gatsby-source-filesystem" plugin in
-          gatsby-config.js).
-        </p>
+        <p>空空如也</p>
       </Layout>
     )
   }
 
   return (
     <Layout location={location} title={siteTitle}>
-      <SEO title="All posts" />
+      <SEO title="Home" />
       <Bio />
-      <ol style={{ listStyle: `none`, marginLeft: 0 }}>
+      <ol style={{ marginLeft: 0, listStyle: `none` }}>
         {posts.map(post => {
           const title = post.frontmatter.title || post.fields.slug
 
           return (
             <li
               key={post.fields.slug}
-              style={{ listStyle: "none", marginLeft: 0, marginTop: "3rem" }}
+              style={{ marginLeft: 0, marginTop: "3rem", listStyle: "none" }}
             >
               <article
                 className="post-list-item"
@@ -44,7 +40,7 @@ const BlogIndex = ({ data, location }) => {
                 itemType="http://schema.org/Article"
               >
                 <header>
-                  <h2 style={{ marginBottom: "0.5rem", marginTop: 0 }}>
+                  <h2 style={{ marginTop: 0, marginBottom: "0.5rem" }}>
                     <Link
                       to={post.fields.slug}
                       itemProp="url"

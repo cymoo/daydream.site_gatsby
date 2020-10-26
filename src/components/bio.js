@@ -23,6 +23,7 @@ const Bio = () => {
         siteMetadata {
           author {
             name
+            description
           }
         }
       }
@@ -38,7 +39,7 @@ const Bio = () => {
       {avatar && (
         <Image
           fixed={avatar}
-          alt={author?.name || ``}
+          alt={author?.name || ""}
           style={{
             marginRight: 15,
             marginBottom: 0,
@@ -49,7 +50,7 @@ const Bio = () => {
           }}
         />
       )}
-      <p style={{ margin: 0 }}>都是胡言乱语，别太当真</p>
+      <p style={{ margin: 0 }}>{author?.description || ""}</p>
     </div>
   )
 }

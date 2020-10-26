@@ -4,8 +4,7 @@ import { Link } from "gatsby"
 const Layout = ({ location, title, children }) => {
   const rootPath = `${__PATH_PREFIX__}/`
   const isRootPath = location.pathname === rootPath
-  let header = null
-  let footer = null
+  let header
 
   if (isRootPath) {
     header = (
@@ -16,10 +15,7 @@ const Layout = ({ location, title, children }) => {
           alignItems: "center",
         }}
       >
-        <h1
-          className="main-heading"
-          style={{ paddingTop: 30, marginTop: 0, fontSize: "2.3rem" }}
-        >
+        <h1 style={{ paddingTop: 30, marginTop: 0, fontSize: "2.3rem" }}>
           <Link
             to="/"
             style={{ textDecoration: "none", color: "var(--text-title)" }}
@@ -29,7 +25,7 @@ const Layout = ({ location, title, children }) => {
         </h1>
         <div style={{ paddingTop: 30 }}>
           <Link
-            to="/"
+            to="/about-me"
             style={{ color: "var(--color)", textDecoration: "none" }}
           >
             关于我
@@ -37,40 +33,18 @@ const Layout = ({ location, title, children }) => {
         </div>
       </header>
     )
-    footer = (
-      <footer
-        style={{
-          marginTop: 45,
-          marginBottom: 30,
-          display: "flex",
-          justifyContent: "space-between",
-          color: "inherit",
-        }}
-      >
-        <a
-          href="mailto:wakenee@hotmail.com"
-          style={{ paddingRight: 10, textDecoration: "none" }}
-        >
-          联系我
-        </a>
-        <a href="/" style={{ paddingLeft: 10, textDecoration: "none" }}>
-          RSS
-        </a>
-      </footer>
+  } else {
+    header = (
+      <header style={{ marginBottom: 10, paddingTop: 30, fontSize: "1.5rem" }}>
+        <Link to="/" style={{ textDecoration: "none" }}>
+          {title}
+        </Link>
+      </header>
     )
   }
-  // else {
-  // header = (
-  //   <Link className="header-link-home" to="/">
-  //     {title}
-  //   </Link>
-  // )
-  // header = null
-  // }
 
   return (
     <div
-      className="global-wrapper"
       data-is-root-path={isRootPath}
       style={{
         minHeight: "100vh",
@@ -81,15 +55,13 @@ const Layout = ({ location, title, children }) => {
         style={{
           marginLeft: "auto",
           marginRight: "auto",
-          maxWidth: 650,
+          maxWidth: 660,
           paddingLeft: 15,
           paddingRight: 15,
         }}
       >
         {header}
-        {/*<header className="global-header">{header}</header>*/}
         <main style={{ marginBottom: 30 }}>{children}</main>
-        {/*{footer}*/}
       </div>
     </div>
   )
