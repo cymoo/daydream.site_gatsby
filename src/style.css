@@ -181,6 +181,8 @@ li > p {
   margin-left: -1.3rem;
   border: none;
   pointer-events: none;
+  /* NOTE: a trick to remove the ghost grey color around the input */
+  visibility: hidden;
 }
 
 .task-list-item input:before {
@@ -193,10 +195,11 @@ li > p {
   background-color: var(--bg-color);
   vertical-align: middle;
   text-align: left;
+  visibility: visible;
 }
 
 .task-list-item input[checked]:before {
-  color: inherit;
+  color: var(--color);
 }
 
 /*
