@@ -8,7 +8,6 @@
   --inline-code-color: rgb(41, 41, 41);
   --inline-code-bg: rgb(242, 242, 242);
   --hr-color: rgb(211, 211, 211);
-  --task-list-color: rgba(41, 41, 41, 0.23);
   --table-border-color: rgba(0, 0, 0, 0.37);
   --green: rgb(66, 154, 53);
   --red: rgb(210, 54, 105);
@@ -190,7 +189,8 @@ li > p {
   content: '\221A';
   width: 1.333rem;
   height: 1.6rem;
-  color: var(--task-list-color);
+  color: var(--color);
+  opacity: 0.27;
   font-weight: 600;
   background-color: var(--bg-color);
   vertical-align: middle;
@@ -200,6 +200,7 @@ li > p {
 
 .task-list-item input[checked]:before {
   color: var(--color);
+  opacity: 1;
 }
 
 /*
