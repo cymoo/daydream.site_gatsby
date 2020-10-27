@@ -30,10 +30,7 @@ const BlogIndex = ({ data, location }) => {
           const title = post.frontmatter.title || post.fields.slug
 
           return (
-            <li
-              key={post.fields.slug}
-              style={{ marginLeft: 0, marginTop: "3rem", listStyle: "none" }}
-            >
+            <li key={post.fields.slug} style={{ marginTop: "3rem" }}>
               <article
                 className="post-list-item"
                 itemScope

@@ -12,7 +12,6 @@ const NotFoundPage = ({ data, location }) => {
       <SEO title="404: Not Found" />
       <h1
         style={{
-          marginTop: "3rem",
           fontSize: "2rem",
         }}
       >

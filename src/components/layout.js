@@ -15,7 +15,7 @@ const Layout = ({ location, title, children }) => {
           alignItems: "center",
         }}
       >
-        <h1 style={{ paddingTop: 30, marginTop: 0, fontSize: "2.3rem" }}>
+        <h1 style={{ marginTop: 0, fontSize: "2.3rem" }}>
           <Link
             to="/"
             style={{ textDecoration: "none", color: "var(--text-title)" }}
@@ -23,7 +23,7 @@ const Layout = ({ location, title, children }) => {
             {title}
           </Link>
         </h1>
-        <div style={{ paddingTop: 30 }}>
+        <div>
           <Link
             to="/about-me"
             style={{ color: "var(--color)", textDecoration: "none" }}
@@ -35,7 +35,7 @@ const Layout = ({ location, title, children }) => {
     )
   } else {
     header = (
-      <header style={{ marginBottom: 10, paddingTop: 30, fontSize: "1.5rem" }}>
+      <header style={{ fontSize: "1.5rem" }}>
         <Link to="/" style={{ textDecoration: "none" }}>
           {title}
         </Link>
@@ -58,10 +58,12 @@ const Layout = ({ location, title, children }) => {
           maxWidth: 660,
           paddingLeft: 15,
           paddingRight: 15,
+          paddingTop: 30,
+          paddingBottom: 45,
         }}
       >
         {header}
-        <main style={{ marginBottom: 30 }}>{children}</main>
+        <main>{children}</main>
       </div>
     </div>
   )

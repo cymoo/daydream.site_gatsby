@@ -21,6 +21,7 @@ exports.createPages = async ({ graphql, actions, reporter }) => {
             }
             frontmatter {
               title
+              visible
             }
           }
         }
@@ -44,8 +45,25 @@ exports.createPages = async ({ graphql, actions, reporter }) => {
 
   if (posts.length > 0) {
     posts.forEach((post, index) => {
-      const previous = index === posts.length - 1 ? null : posts[index + 1]
-      const next = index === 0 ? null : posts[index - 1]
+      let previous = null
+      let next = null
+
+      if (post.frontmatter.visible !== false) {
+        previous =
+          index === posts.length - 1
+            ? null
+            : posts
+                .slice(index + 1)
+                .find(item => item.frontmatter.visible !== false)
+
+        next =
+          index === 0
+            ? null
+            : posts
+                .slice(0, index)
+                .reverse()
+                .find(item => item.frontmatter.visible !== false)
+      }
 
       createPage({
         path: post.fields.slug,

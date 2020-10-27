@@ -24,7 +24,7 @@ const BlogPostTemplate = ({ data, pageContext, location }) => {
               <Img fluid={img} />
             </div>
           )}
-          <h1 itemProp="headline" style={{ marginTop: 0, paddingTop: 30 }}>
+          <h1 itemProp="headline" style={{ marginTop: 40 }}>
             {post.frontmatter.title}
           </h1>
           {post.frontmatter.date && (
@@ -38,7 +38,7 @@ const BlogPostTemplate = ({ data, pageContext, location }) => {
           itemProp="articleBody"
         />
       </article>
-      <nav style={{ marginTop: 30, marginBottom: 45 }}>
+      <nav style={{ marginTop: 30 }}>
         <ul
           style={{
             display: `flex`,
