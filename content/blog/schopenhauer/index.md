@@ -1,7 +1,7 @@
 ---
 title: 伟大的厌世者
 date: "2015-05-03"
-visible: false
+visible: true
 ---
 
 to be done...
