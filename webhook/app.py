@@ -7,12 +7,16 @@ import hmac
 app = Flask(__name__)
 
 
-@app.route('/', methods=['POST'])
-def hello_world():
+@app.route('/push', methods=['POST'])
+def build_on_push():
     payload = request.get_data()
     if verify_signature(payload):
-        build_daydream()
-        return 'success'
+        rv = os.system('cd .. && git pull && npm run build')
+        if rv == 0:
+            return 'build successful'
+        else:
+            app.logger.error('build failed')
+            return 'build failed'
     else:
         app.logger.error(f'Cannot verify signature from {request.remote_addr}!')
         abort(400)
@@ -25,10 +29,6 @@ def verify_signature(payload):
     ).hexdigest()
 
     return request.headers['X-Hub-Signature-256'] == 'sha256=' + signature
-
-
-def build_daydream():
-    pass
 
 
 if __name__ == '__main__':
