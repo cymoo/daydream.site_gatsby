@@ -71,3 +71,7 @@ yarn-error.log
 # Editor
 .vscode
 .idea
+
+# Python
+*.py[co]
+__pycache__/

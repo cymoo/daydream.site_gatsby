@@ -29,7 +29,7 @@ def verify_signature(payload):
 
 
 def build_site():
-    rv = os.system('cd .. && git pull && npm run build')
+    rv = os.system('cd .. && git pull > /dev/null && npm run build > /dev/null')
     if rv != 0:
         app.logger.error('build failed')
 
