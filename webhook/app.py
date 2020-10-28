@@ -29,6 +29,7 @@ def verify_signature(payload):
 
 
 def build_site():
+    # TODO: why gunicorn can still capture the stdout and stderr
     rv = os.system('cd .. && git pull &> /dev/null && npm run build &> /dev/null')
     if rv != 0:
         app.logger.error('build failed')
