@@ -1,8 +1,8 @@
+from threading import Thread
 import os
 from flask import Flask, request, abort
 from hashlib import sha256
 import hmac
-from threading import Thread
 
 
 app = Flask(__name__)
@@ -35,4 +35,5 @@ def build_site():
 
 
 if __name__ == '__main__':
+    # only used for test
     app.run(host='0.0.0.0', port=5555)
