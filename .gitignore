@@ -80,3 +80,4 @@ __pycache__/
 pid
 access.log
 error.log
+archives/
