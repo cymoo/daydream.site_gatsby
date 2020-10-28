@@ -2,6 +2,7 @@ import os
 from flask import Flask, request, abort
 from hashlib import sha256
 import hmac
+from threading import Thread
 
 
 app = Flask(__name__)
@@ -11,12 +12,8 @@ app = Flask(__name__)
 def build_on_push():
     payload = request.get_data()
     if verify_signature(payload):
-        rv = os.system('cd .. && git pull && npm run build')
-        if rv == 0:
-            return 'build successful'
-        else:
-            app.logger.error('build failed')
-            return 'build failed'
+        Thread(target=build_site).start()
+        return 'build successful'
     else:
         app.logger.error(f'Cannot verify signature from {request.remote_addr}!')
         abort(400)
@@ -29,6 +26,12 @@ def verify_signature(payload):
     ).hexdigest()
 
     return request.headers['X-Hub-Signature-256'] == 'sha256=' + signature
+
+
+def build_site():
+    rv = os.system('cd .. && git pull && npm run build')
+    if rv != 0:
+        app.logger.error('build failed')
 
 
 if __name__ == '__main__':
