@@ -14,7 +14,7 @@ app = Flask(__name__)
 def build_on_push():
     payload = request.get_data()
     if verify_signature(payload):
-        Thread(target=build_site, args=('127.0.0.1',)).start()
+        Thread(target=build_site, kwargs={'local': True}).start()
         return 'build successful'
     else:
         app.logger.error(f'Cannot verify signature from {request.remote_addr}!')
