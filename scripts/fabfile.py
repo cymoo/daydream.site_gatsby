@@ -12,30 +12,42 @@ BACK_DIR = f'{SITE_DIR}/archives'
 REPO_DIR = '/var/www/repo/daydream.site'
 
 
-def build_site(host):
-    conn = Connection(host=host, user=os.environ['USER'])
-    conn.run(f'cd {REPO_DIR} && git pull && npm run build')
-    backup(conn)
-    conn.run(f'cp -r {REPO_DIR}/public {SITE_DIR}')
+def build_site(local=False):
+    conn = Connection(host=HOST, user=os.environ['USER'])
+    if local:
+        exec_cmd = conn.local
+    else:
+        exec_cmd = conn.run
+
+    exec_cmd(f'cd {REPO_DIR} && git pull && npm run build')
+    backup(exec_cmd)
+    exec_cmd(f'cp -r {REPO_DIR}/public {SITE_DIR}')
 
 
-def backup(conn):
-    backup_nums = conn.run(f'ls {BACK_DIR} | wc -l', hide=True).stdout
+def backup(exec_cmd):
+    backup_nums = exec_cmd(f'ls {BACK_DIR} | wc -l', hide=True).stdout
 
     if int(backup_nums) >= MAX_BACKUPS:
-        first_dir = conn.run(f'ls {BACK_DIR} | head -1', hide=True).stdout.strip()
+        first_dir = exec_cmd(f'ls {BACK_DIR} | head -1', hide=True).stdout.strip()
         print(f'remove the oldest backup: {first_dir}')
-        conn.run(f'rm -rf {BACK_DIR}/{first_dir}')
+        exec_cmd(f'rm -rf {BACK_DIR}/{first_dir}')
 
     now = datetime.now().strftime('%Y-%m-%d_%H:%M:%S')
-    if conn.run(f'test -d {SITE_DIR}/public', warn=True).exited == 0:
-        conn.run(f'mv {SITE_DIR}/public {BACK_DIR}/{now}')
+    if exec_cmd(f'test -d {SITE_DIR}/public', warn=True).exited == 0:
+        exec_cmd(f'mv {SITE_DIR}/public {BACK_DIR}/{now}')
 
 
 @task
 def build(ctx):
-    build_site(HOST)
+    build_site()
+
+
+def test(host):
+    conn = Connection(host=host, user=os.environ['USER'])
+    conn.run('ls -l ~')
+    conn.local('ls -l ~')
 
 
 if __name__ == '__main__':
-    build_site(HOST)
+    build_site()
+    # test(HOST)
