@@ -1,6 +1,8 @@
 const React = require("react")
 
 // NOTE: Google analytics is better but the service is unavailable in China.
+// NOTE: Baidu analytics is too bad to use
+/*
 exports.onRenderBody = ({ setHeadComponents }) => {
   if (process.env.NODE_ENV === "production") {
     setHeadComponents([
@@ -21,3 +23,4 @@ exports.onRenderBody = ({ setHeadComponents }) => {
     ])
   }
 }
+ */
