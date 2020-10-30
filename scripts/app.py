@@ -30,13 +30,6 @@ def verify_signature(payload):
     return request.headers['X-Hub-Signature-256'] == 'sha256=' + signature
 
 
-# def build_site():
-#     # TODO: why gunicorn can still capture the stdout and stderr
-#     rv = os.system('cd .. && git pull &> /dev/null && npm run build &> /dev/null')
-#     if rv != 0:
-#         app.logger.error('build failed')
-
-
 if __name__ == '__main__':
     # only used for test
     app.run(host='0.0.0.0', port=5555)

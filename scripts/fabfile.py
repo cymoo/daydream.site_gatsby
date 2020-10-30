@@ -51,4 +51,3 @@ def test(host):
 
 if __name__ == '__main__':
     build_site()
-    # test(HOST)
