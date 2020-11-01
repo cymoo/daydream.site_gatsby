@@ -6,7 +6,7 @@ module.exports = {
       description: "都是胡言乱语，别当真",
     },
     description: `Personal blog by Cymoo.`,
-    siteUrl: `http://daydream.site`,
+    siteUrl: `https://daydream.site`,
   },
   plugins: [
     {

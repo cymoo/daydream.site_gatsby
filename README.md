@@ -1,4 +1,4 @@
-# [daydream.site](http://daydream.site)
+# [daydream.site](https://daydream.site)
 
 It's my personal Blog. Forked from <https://github.com/gatsbyjs/gatsby-starter-blog>.
 
