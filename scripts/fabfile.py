@@ -6,7 +6,7 @@ import os
 
 MAX_BACKUPS = 50
 
-HOST = '47.116.68.177'
+HOST = '47.117.133.111'
 SITE_DIR = '/var/www/daydream.site'
 BACK_DIR = f'{SITE_DIR}/archives'
 REPO_DIR = '/var/www/repo/daydream.site'
