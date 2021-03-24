@@ -10,10 +10,11 @@ HOST = '47.117.133.111'
 SITE_DIR = '/var/www/daydream.site'
 BACK_DIR = f'{SITE_DIR}/archives'
 REPO_DIR = '/var/www/repo/daydream.site'
+USER = 'jie'
 
 
 def build_site(local=False):
-    conn = Connection(host=HOST, user=os.environ['USER'])
+    conn = Connection(host=HOST, user=USER)
     if local:
         exec_cmd = conn.local
     else:
@@ -45,7 +46,7 @@ def build(ctx):
 
 
 def test(host):
-    conn = Connection(host=host, user=os.environ['USER'])
+    conn = Connection(host=host, user=USER)
     conn.run('ls -l ~')
     conn.local('ls -l ~')
 
