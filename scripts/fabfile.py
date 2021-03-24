@@ -4,7 +4,7 @@ from datetime import datetime
 from fabric import Connection, task
 import os
 
-MAX_BACKUPS = 50
+MAX_BACKUPS = 20
 
 HOST = '47.117.133.111'
 SITE_DIR = '/var/www/daydream.site'
@@ -26,6 +26,7 @@ def build_site(local=False):
 
 
 def backup(exec_cmd):
+    exec_cmd(f'mkdir {BACK_DIR}', hide=True, warn=True)
     backup_nums = exec_cmd(f'ls {BACK_DIR} | wc -l', hide=True).stdout
 
     if int(backup_nums) >= MAX_BACKUPS:
@@ -50,4 +51,4 @@ def test(host):
 
 
 if __name__ == '__main__':
-    build_site()
+    pass
