@@ -21,7 +21,7 @@ def build_site(local=False):
         exec_cmd = conn.run
 
     # BUG: when running locally, PATH is not set properly.
-    exec_cmd(f'cd {REPO_DIR} && git pull && export PATH=/usr/local/node/bin:$PATH && npm run build')
+    exec_cmd(f'cd {REPO_DIR} && git pull && export PATH=/usr/local/node/bin:$PATH && npm install && npm run build')
     backup(exec_cmd)
     exec_cmd(f'cp -r {REPO_DIR}/public {SITE_DIR}')
 
