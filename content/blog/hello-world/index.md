@@ -1,231 +1,35 @@
 ---
-title: Hello World
-date: "2015-05-01T22:12:03.284Z"
-visible: false
+title: hello world
+visible: true
+date: 2021-04-03
+description: I do and I understand
 ---
 
-This is my first post on my new ~~fake blog~~! How exciting!
+现代的软件系统建立在一些基础的组件上面，比如操作系统、编译器、数据库、web server、web 框架等，在此之上，才有了我们日常使用的林林总总的网站与APP。完整地实现这些组件是十分十分困难的，需要大量的理论知识与dirty work，因此很多人将其视为“黑箱”。然而，在通向优秀progammer的路上，了解它们基本的运作原理是有必要的，这可以拓展我们知识的广度，学习到优秀的设计思想，探索它们的过程也会如走迷宫一般，在抵达出口的时候，所收获的成就感也是巨大的。
 
-I'm sure I'll write a lot more interesting things in the future.
+在接下来的一些天内，我们会从零开始实现一些基本的组件，这里说的“零“指的是我们不会使用除了编程语言及其标准库之外的任何东西。
 
-Oh, and here's a great quote from this Wikipedia on
-[salted duck eggs](https://en.wikipedia.org/wiki/Salted_duck_egg).
+* [Python web 框架，与 Flask 有相似的 API](./)
+* [Python web server，实现 WSGI 协议 ](./)
+* [Template engine](./)
+* [Object Mapper，方便地操作MongoDB](./)
+* [JavaScript 框架，与 React 有类似的 API](./)
+* [富文本编辑器](./)
+* [一个玩具解释器](./)
+* [深度学习框架，与 Pytorch有类似的 API](./)
 
-> A salted duck egg is a Chinese preserved food product made by soaking duck
-> eggs in brine, or packing each egg in damp, salted charcoal. In Asian
-> supermarkets, these eggs are sometimes sold covered in a thick layer of salted
-> charcoal paste. The eggs may also be sold with the salted paste removed,
-> wrapped in plastic, and vacuum packed. From the salt curing process, the
-> salted duck eggs have a briny aroma, a gelatin-like egg white and a
-> firm-textured, round yolk that is bright orange-red in color.
+我们会尽量将代码控制在500行左右，为了简洁考虑，我们会忽略掉错误检查，也不会考虑代码的运行效率等（当然这些在严肃的框架中是至关重要的）。
 
-![Chinese Salty Egg](./salty_egg.jpg)
+让我们开始这一段旅程吧。
 
-You can also write code blocks here!
+> 我听过，然后我忘记
 
-```js
-const saltyDuckEgg = "chinese preserved food product"
-```
+![see](./hear.png)
 
-| Number | Title                                    | Year |
-| :----- | :--------------------------------------- | ---: |
-| 1      | Harry Potter and the Philosopher’s Stone | 2001 |
-| 2      | Harry Potter and the Chamber of Secrets  | 2002 |
-| 3      | Harry Potter and the Prisoner of Azkaban | 2004 |
+> 我看过，然后我记得
 
-[View raw (TEST.md)](https://raw.github.com/adamschwartz/github-markdown-kitchen-sink/master/README.md)
+![see](./see.png)
 
-This is a paragraph.
+> 我动手，然后我理解
 
-    This is a paragraph.
-
-# Header 1
-
-## Header 2
-
-    Header 1
-    ========
-    
-    Header 2
-    --------
-
-# Header 1
-
-## Header 2
-
-### Header 3
-
-#### Header 4
-
-##### Header 5
-
-###### Header 6
-
-    # Header 1
-    ## Header 2
-    ### Header 3
-    #### Header 4
-    ##### Header 5
-    ###### Header 6
-
-# Header 1
-
-## Header 2
-
-### Header 3
-
-#### Header 4
-
-##### Header 5
-
-###### Header 6
-
-    # Header 1 #
-    ## Header 2 ##
-    ### Header 3 ###
-    #### Header 4 ####
-    ##### Header 5 #####
-    ###### Header 6 ######
-
-> Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus. Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
-
-    > Lorem ipsum dolor sit amet, consectetuer adipiscing elit. Aliquam hendrerit mi posuere lectus. Vestibulum enim wisi, viverra nec, fringilla in, laoreet vitae, risus.
-
-> ## This is a header.
->
-> 1. This is the first list item.
-> 2. This is the second list item.
->
-> Here's some example code:
->
->     Markdown.generate();
-
-    > ## This is a header.
-    > 1. This is the first list item.
-    > 2. This is the second list item.
-    >
-    > Here's some example code:
-    >
-    >     Markdown.generate();
-
-- Red
-- Green
-- Blue
-<br />
-* Red
-* Green
-* Blue
-<br />
-- Red
-- Green
-- Blue
-
-```markdown
-- Red
-- Green
-- Blue
-
-* Red
-* Green
-* Blue
-
-- Red
-- Green
-- Blue
-```
-
-- `code goes` here in this line
-- **bold** goes here
-
-```markdown
-- `code goes` here in this line
-- **bold** goes here
-```
-
-1. Buy flour and salt
-1. Mix together with water
-1. Bake
-
-```markdown
-1. Buy flour and salt
-1. Mix together with water
-1. Bake
-```
-
-1. `code goes` here in this line
-1. **bold** goes here
-
-```markdown
-1. `code goes` here in this line
-1. **bold** goes here
-```
-
-Paragraph:
-
-    Code
-
-<!-- -->
-
-    Paragraph:
-    
-        Code
-
----
-
----
-
----
-
----
-
----
-
-    * * *
-    
-    ***
-    
-    *****
-    
-    - - -
-    
-    ---------------------------------------
-
-This is [an example](http://example.com "Example") link.
-
-[This link](http://example.com) has no title attr.
-
-This is [an example][id] reference-style link.
-
-[id]: http://example.com "Optional Title"
-
-    This is [an example](http://example.com "Example") link.
-    
-    [This link](http://example.com) has no title attr.
-    
-    This is [an example] [id] reference-style link.
-    
-    [id]: http://example.com "Optional Title"
-
-_single asterisks_
-
-_single underscores_
-
-**double asterisks**
-
-**double underscores**
-
-    *single asterisks*
-    
-    _single underscores_
-    
-    **double asterisks**
-    
-    __double underscores__
-
-This paragraph has some `code` in it.
-
-    This paragraph has some `code` in it.
-
-![Alt Text](https://placehold.it/200x50 "Image Title")
-
-    ![Alt Text](https://placehold.it/200x50 "Image Title")
+![do](./do.png)
