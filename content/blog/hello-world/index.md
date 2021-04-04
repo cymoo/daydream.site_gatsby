@@ -13,7 +13,7 @@ description: I do and I understand
 * [Web server，实现了 WSGI 协议 ](#)
 * [Template engine，模板渲染引擎](#)
 * [Object mapper，用 type hints 来定义 MongoDB 模型，并提供简洁的读写  API](#)
-* [操作系统<sup>TM</sup>，基于协程实现，支持多任务](#)
+* [操作系统<sup style="text-decoration: none;">TM</sup>，基于协程实现，支持多任务](#)
 * JavaScript 框架，数据驱动视图，与 React 有相似的 API
 * 富文本编辑器，基于**受控**的 contenteditable 来实现
 * 简单的解释器，使用 Lisp 语法风格
