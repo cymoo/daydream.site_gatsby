@@ -2,7 +2,7 @@
 title: hello world
 visible: true
 date: 2021-04-03
-description: I do and I understand
+description: I create then I understand
 ---
 
 现代的软件系统建立在一些基础的组件上面，比如操作系统、编译器、数据库、web server 和 web 框架等，在此基础上，才有了更高层的库以及我们平时所使用的网站和 APP 等。完整地实现它们是十分困难的，需要大量的专业知识、dirty work 和团队的协作，所以很多人将其视为“黑箱”，会调包即可。然而，在通向优秀 progammer 的路上，了解它们基本的运作原理是有必要的，这可以拓展我们知识的广度，学习到优秀的设计思想，探索它们的过程也会如走迷宫一般，在抵达出口的时候，所收获的成就感也是巨大的。
