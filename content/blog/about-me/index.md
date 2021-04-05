@@ -3,4 +3,5 @@ title: 关于我
 visible: false
 ---
 
-Hello, world.
+邮箱：<wakenee@hotmail.com>
+
