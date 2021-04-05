@@ -9,16 +9,25 @@ description: I create then I understand
 
 在接下来的一些天内，我们会从零开始实现一些基本的组件。这里说的“零“指的是我们不会使用除了编程语言及其标准库之外的东西。
 
-* [Web 框架，与 Flask 有相似的 API](#)
-* [Web server，实现了 WSGI 协议 ](#)
-* [Template engine，模板渲染引擎](#)
-* [Object mapper，用 type hints 来定义 MongoDB 模型，并提供简洁的读写  API](#)
-* [操作系统<sup style="text-decoration: none;">TM</sup>，基于协程实现，支持多任务](#)
-* JavaScript 框架，数据驱动视图，与 React 有相似的 API
-* 富文本编辑器，基于**受控**的 contenteditable 来实现
-* 简单的解释器，使用 Lisp 语法风格
-* 极简的深度学习框架，实现了自动求导
-* More...
+- [x] [Web 框架，与 Flask 有相似的 API](#)
+
+- [x] [Web server，实现了 WSGI 协议 ](#)
+
+- [x] [Template engine，模板渲染引擎](#)
+
+- [x] [Object mapper，用 type hints 来定义 MongoDB 模型，并提供简洁的读写 API](#)
+
+- [x] [操作系统TM，基于协程实现，支持多任务](#)
+
+- [ ] JavaScript 框架，数据驱动视图，与 React 有相似的 API
+
+- [ ] 富文本编辑器，基于**受控**的 contenteditable 来实现
+
+- [ ] 简单的解释器，使用 Lisp 语法风格
+
+- [ ] 极简的深度学习框架，实现了自动求导
+
+- [ ] More...
 
 代码将尽量被控制在500行以内，为了实现的简洁，错误检查、运行效率和复杂的特性等一般都会被忽略掉，当然这些在严肃的框架中是至关重要的。
 
