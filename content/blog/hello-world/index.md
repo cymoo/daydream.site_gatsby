@@ -20,19 +20,19 @@ description: I create then I understand
 - [x] [Object mapper，用 type hints 来定义 MongoDB 模型，并提供简洁的读写 API](#)
 
 - [x] [操作系统<sup>TM</sup>，基于协程实现，支持多任务](#)
-- [x] [Linux shell，实现管道，重定向，进程管理等](#)
+- [ ] [Linux shell，实现管道，重定向，进程管理等](#)
 
-- [ ] JavaScript 框架，数据驱动视图，与 React 有相似的 API
+- [ ] 前端 JavaScript 框架，数据驱动，与 React 有相似的 API
 
 - [ ] 富文本编辑器，基于**受控**的 contenteditable 来实现
 
 - [ ] 简单的解释器，使用 Lisp 语法风格
 
-- [ ] 极简的深度学习框架，实现了自动求导
+- [ ] 极简的深度学习框架，实现了自动微分，支持基本算子，我们会用它训练 yolo
 
 - [ ] More...
 
-每一部分的代码将尽量被控制在1000行以内，为了实现的简洁，错误检查、运行效率和复杂的特性等一般都会被忽略掉，当然这些在严肃的框架中是至关重要的。
+每一部分的代码将被控制在1000行以内，为了实现的简洁，错误检查、运行效率和复杂的特性等一般都会被忽略掉，当然这些在严肃的框架中是至关重要的。关于语言，web 后端部分我主要使用 Python，解释器用 Java，数据库与 Shell 等用 C，前端相关用 JavaScript。
 
 系列的内容将会不断更新，相关的代码在 [我的 github](https://github.com/cymoo) 上可以找到，如果对实现有疑问，可在对应的代码仓下创建 issue。
 
