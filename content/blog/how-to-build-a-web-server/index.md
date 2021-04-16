@@ -246,7 +246,7 @@ class MiniServer:
 Python 标准库 `concurrent.futures`中有个类 `ThreadPoolExecutor`，也可以选择使用它，而且相比我们的手工实现，它多了几个好用的功能。但是文章标题是__从零实现__，为了提高逼格，标准库能不用就不用。
 
 ```python
-    def make_threads(self, num_threads) -> Queue:
+    def make_threads(self, num_threads: int) -> Queue:
         queue = Queue()
         for _ in range(num_threads):
             thread = Thread(target=self.handle_request, args=(queue, ))
