@@ -40,6 +40,7 @@ def app(environ, start_response):
 @app.get('/')
 def index(req):
     return 'hello world'
+```
 
 ## 框架设计
 
