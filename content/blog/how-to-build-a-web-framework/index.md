@@ -100,6 +100,8 @@ def index(req):
 
 5. 基于装饰器的全局 error handler
 
+   `@app.error(status_code)` 装饰的函数会捕获对应的 `HTTPError`。
+   
    ```python
    @app.error(403)
    def handle_403(req: Request, err: HTTPError):
