@@ -41,3 +41,69 @@ def app(environ, start_response):
 def index(req):
     return 'hello world'
 
+## 框架设计
+
+1. 基于装饰器的路由分发
+
+   ```python
+   @app.get('/')
+   
+   # 支持 URL 参数
+   @app.post('/user/<name>')
+   
+   @app.route('/upload', methods=['GET', 'POST'])
+   ```
+
+2. 显式的传递 `Request`对象
+
+   我们使用 Django 的方式，而没有像 Flask 一样使用 thread local，当然它是个很好的设计，而且当为框架编写扩展时尤为方便。
+
+   ```python
+   @app.get('/user')
+   def user(request: Request): pass
+   ```
+
+3. GET 与 POST 属性
+
+   ```python
+   # 获取 query string 的参数
+   request.GET.get('arg')
+   
+   # Content-Type 为 'multipart/form-data' 或 'application/x-www-form-urlencoded' 均可用 request.POST 获取
+   request.POST.get('myfile')
+   request.POST.get('username')
+   
+   # Content-Type 为 'application/json' 可使用 request.json 获取
+   request.json
+   ```
+
+4. Response 类
+
+   响应的类包括：`Response`，`JSONResponse`，`FileResponse`，`Redirect`，`HTTPError`，视图函数返回的 `dict` 或 `list` 会自动转为 `JSONResponse`。
+
+   ```python
+   @app.get('/resp')
+   def many_resp(req: Request):
+       num = random()
+       if num > 0.8:
+           raise HTTPError(500, 'Oops, server error!')
+       elif num > 0.6:
+           return FileResponse('myfile.png', '/path/to/mydir')
+       elif num > 0.4:
+           return Redirect('https://www.bing.com')
+       elif num > 0.2:
+           return {'status': 'ok'}
+       else:
+           return 'hello world'
+   ```
+
+5. 基于装饰器的全局 error handler
+
+   ```python
+   @app.error(403)
+   def handle_403(req: Request, err: HTTPError):
+       resp = JSONResponse({'status': 'failed', 'message': 'access denied'})
+       resp.status_code = 403
+       return resp
+   ```
+
