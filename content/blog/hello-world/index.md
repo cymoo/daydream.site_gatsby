@@ -10,14 +10,14 @@ description: I create then I understand
 接下来的一些天内，我们会从零开始实现一些有趣的东西。这里说的“零“指的是不会使用除了编程语言及其标准库之外的东西。当然，与产品级的实现相比，我们的可能是个 toy，然而一叶不一定会障目，说不定你会因为发现一片新奇、美丽的叶子，而喜欢上了探索整片森林呢。
 
 - [x] [Web server，支持基本的并发](/how-to-build-a-web-server/)
-- [x] [Web 框架，简单易用，包含路由、表单和文件处理等](#)
+- [x] [Web 框架，简单易用，包含路由、表单和文件处理等](/how-to-build-a-web-framework/)
 - [x] [Template engine，模板渲染引擎，与 Jinja2 类似](#)
 - [x] [ORM，对象映射，使用 type hints 来定义数据模型](#)
 - [x] Task scheduler 及异步 server，基于协程](#)
 - [ ] 爬虫框架，多线程下载，多进程解析，简单易用
 - [ ] 前端 JavaScript 框架，数据驱动，与 React 有相似的 API
 - [ ] 富文本编辑器，基于**受控**的 contenteditable 来实现
-- [ ] [Linux shell，实现管道，重定向，进程管理等](#)
+- [ ] Linux shell，实现管道，重定向，进程管理等
 - [ ] 简单的解释器，使用 Lisp 语法风格
 - [ ] 极简的深度学习框架，实现自动微分，支持基本算子，并用它训练若干经典网络
 - [ ] More...
