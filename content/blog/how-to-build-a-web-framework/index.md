@@ -386,6 +386,77 @@ Content-Type: text/plain
     __repr__ = __str__
 ```
 
+前面用到了几个辅助类和函数：
+
+```python
+def squeeze(value):
+    """
+    >>> squeeze([1, 2])
+    [1, 2]
+    >>> squeeze([1])
+    1
+    """
+    if isinstance(value, list) and len(value) == 1:
+        return value[0]
+    else:
+        return value
+```
+
+```python
+class cached_property:
+    def __init__(self, func):
+        self.__doc__ = func.__doc__
+        self.func = func
+
+    def __get__(self, obj, cls):
+        if obj is None:
+            return self
+        value = obj.__dict__[self.func.__name__] = self.func(obj)
+        return value
+```
+
+```python
+class FileStorage:
+    """A thin wrapper over incoming files."""
+
+    def __init__(self,
+                 stream: BytesIO,
+                 name: str,
+                 filename: str,
+                 headers: Optional[dict] = None) -> None:
+        self.stream = stream or BytesIO()
+        self.name = name
+        self.raw_filename = filename
+        self.headers = headers or {}
+
+    @staticmethod
+    def secure_filename(filename: str) -> str:
+        filename = re.sub(r'[^\u4e00-\u9fa5\w\-.]+', '', filename).strip()
+        filename = re.sub(r'[-\s]+', '-', filename).strip('.-')
+        return filename[:255] or 'empty'
+
+    def save(self, dst: str, overwrite=False) -> None:
+        if os.path.isdir(dst):
+            filepath = os.path.join(dst, self.secure_filename(self.raw_filename))
+        else:
+            filepath = dst
+
+        if os.path.exists(filepath) and not overwrite:
+            raise IOError(500, 'File exists: {}.'.format(filepath))
+
+        offset = self.stream.tell()
+
+        with open(filepath, 'wb') as fp:
+            stream = self.stream
+            while True:
+                buf = stream.read(4096)
+                if not buf:
+                    break
+                fp.write(buf)
+
+        self.stream.seek(offset)
+```
+
 
 
 ###Response
