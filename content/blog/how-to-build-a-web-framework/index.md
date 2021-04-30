@@ -55,7 +55,7 @@ def app(environ, start_response):
 
 框架的核心处理逻辑是类似的，而也是比较简单的。搞定了一个，便可以轻松将所学的迁移到其他的 web 框架上，即一通百通。
 
-使用我们将要实现的框架， 实现上述同样的功能，代码又是这样的：
+使用我们将要实现的框架， 实现上述同样的功能，代码是这样的：
 
 ```python
 @app.get('/')
@@ -71,43 +71,49 @@ def upload(req):
 
 ## 框架设计
 
+我们会实现以下几个类：
+
+* `Request`：它包含用户的请求信息，相比 `environ` 对象，它解析了请求体，而且提供了更友好的访问接口
+* `Response`：它表示要发送的响应，提供了设置响应的 status、header 和 body 等的方法。
+* `Router`：它根据请求的路径和方法匹配一个函数。
+* `MiniWeb`：它代表一个 web 应用，包含了路由、错误处理函数和应用的配置等，它的实例是一个可被调用的 WSGI 应用。
+
+框架的主要特点：
+
 1. 基于装饰器的路由分发
 
    ```python
+   # 当访问 / 且请求方法为 GET 时，会调用函数 foo
    @app.get('/')
+   def foo(req): pass
    
    # 支持 URL 参数
    @app.post('/user/<name>')
+   def bar(req, name): pass
    
+   # 当访问 /upload 且方法为 GET 或 POST 时，会调用函数 baz
    @app.route('/upload', methods=['GET', 'POST'])
+   def baz(req): pass
    ```
 
 2. 显式的传递 `Request`对象
 
-   我们没有像 Flask 一样使用 thread local，当然它是个很好的设计，而且当为框架编写扩展时尤为方便。
+   我们没有像 Flask 一样使用 thread local，即 `request` 可以像全局变量一样使用，但它的每个属性却是线程独立的，可被多个线程读写而不互相干扰。它是个很好的设计，当为框架编写扩展时尤为方便。正因如此，它只能与使用了线程（或 greenlet）的 server 做搭档，在后面的文章中，我们会实现一个异步IO的 server 和框架，这样本文的代码就可以得到最大程度的复用。
 
    ```python
-   @app.get('/user')
-   def user(request: Request): pass
+   @app.route('/user/<name>', methods=['GET', 'POST'])
+   def user(req: Request, name: str):
+       print(req.cookies)
+       # req.GET 为一个解析了 query string 的 dict
+       print(req.GET)
+       # req.POST 为一个包含了用户上传的表单和文件的 dict
+       print(req.POST)
+       # ...
    ```
 
-3. GET 与 POST 属性
+4. `Response` 类
 
-   ```python
-   # 获取 query string 的参数
-   request.GET.get('arg')
-   
-   # Content-Type 为 'multipart/form-data' 或 'application/x-www-form-urlencoded' 均可用 request.POST 获取
-   request.POST.get('myfile')
-   request.POST.get('username')
-   
-   # Content-Type 为 'application/json' 可使用 request.json 获取
-   request.json
-   ```
-
-4. Response 类
-
-   响应的类包括：`Response`，`JSONResponse`，`FileResponse`，`Redirect`，`HTTPError`，视图函数返回的 `dict` 或 `list` 会自动转为 `JSONResponse`。
+   `Response` 代表 HTTP 响应，`JSONResponse`，`FileResponse`，`Redirect`，`HTTPError` 等都是它的子类；视图函数返回的 `dict` 或 `list` 会自动转为 `JSONResponse`。
 
    ```python
    @app.get('/resp')
@@ -116,9 +122,9 @@ def upload(req):
        if num > 0.8:
            raise HTTPError(500, 'Oops, server error!')
        elif num > 0.6:
-           return FileResponse('myfile.png', '/path/to/mydir')
+           return FileResponse('myfile.png', '/path/to/dir')
        elif num > 0.4:
-           return Redirect('https://www.bing.com')
+           return Redirect('https://www.google.com')
        elif num > 0.2:
            return {'status': 'ok'}
        else:
@@ -127,7 +133,7 @@ def upload(req):
 
 5. 基于装饰器的全局 error handler
 
-   `@app.error(status_code)` 装饰的函数会捕获对应的 `HTTPError`。
+   `@app.error(error_code)` 装饰的函数会捕获对应的 `HTTPError`。
    
    ```python
    @app.error(403)
@@ -139,6 +145,18 @@ def upload(req):
 
 ## 实现
 
-### 实现 `Request` 类
+### Request
 
 回忆上一篇文章，一个 HTTP 请求的所有信息都存放于一个 `dict`，即 `environ` 中。它是由 server 生成的，包含了请求头的内容，而请求体尚待解析。我们要实现的 `Request` 类就是对 `environ` 的包装，提供更友好的访问的接口。
+
+###Response
+
+...
+
+###Router
+
+...
+
+###MiniWeb
+
+...
