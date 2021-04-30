@@ -73,7 +73,7 @@ def upload(req):
 
 我们会实现以下几个类：
 
-* `Request`：它包含用户的请求信息，相比 `environ` 对象，它解析了请求体，而且提供了更友好的访问接口
+* `Request`：它包含用户的请求信息，相比 `environ` 对象，它解析了请求体，而且提供了更友好的访问接口。
 * `Response`：它表示要发送的响应，提供了设置响应的 status、header 和 body 等的方法。
 * `Router`：它根据请求的路径和方法匹配一个函数。
 * `MiniWeb`：它代表一个 web 应用，包含了路由、错误处理函数和应用的配置等，它的实例是一个可被调用的 WSGI 应用。
@@ -147,7 +147,246 @@ def upload(req):
 
 ### Request
 
-回忆上一篇文章，一个 HTTP 请求的所有信息都存放于一个 `dict`，即 `environ` 中。它是由 server 生成的，包含了请求头的内容，而请求体尚待解析。我们要实现的 `Request` 类就是对 `environ` 的包装，提供更友好的访问的接口。
+回忆以下，`environ` 包含了类似以下的内容：
+
+```python
+{
+  'PATH_INFO': '/',
+  'REQUEST_METHOD': 'GET',
+  'QUERY_STRING': 'user=foo&pwd=123',
+  'CONTENT_TYPE': 'application/json',
+  'CONTENT_LENGTH': '1024',
+  'REMOTE_ADDR': '127.0.0.1',
+  'wsgi.input': sock,
+  'HTTP_HOST': 'example.com',
+  'HTTP_COOKIE': 'foo=1; bar=3',
+  # ...
+}
+```
+
+`Request` 即是对 `environ` 的 封装，提供了更友好的访问接口；它的属性几乎都是只读的。
+
+```python
+class Request:
+    def __init__(self, environ: dict) -> None:
+        self._environ = environ
+    
+    # cached_property 的使用与 property 一样，但它只有第一次访问时才被计算；
+    # 随后被缓存起来，避免重复计算。稍后会给出它的实现。
+    @cached_property
+    def headers(self) -> dict:
+        rv = {}
+
+        for key, value in self._environ.items():
+            # environ 中大部分请求头以 HTTP_ 开始，为了看起来好看些，我们把前缀移除。
+            if key.startswith('HTTP_'):
+                name = key[5:].replace('_', '-').upper()
+                rv[name] = value
+
+        return rv
+
+    def get_header(self, name: str) -> Optional[str]:
+        return self.headers.get(name.upper().replace('_', '-'))
+      
+    @property
+    def query_string(self) -> str:
+        return self._environ.get('QUERY_STRING', '')
+
+    @property
+    def method(self) -> str:
+        return self._environ['REQUEST_METHOD']
+
+    @property
+    def path(self) -> str:
+        # PATH_INFO 中的特殊字符一般都会被转义，比如空格会表示为 %20；
+        # 这里使用标准库中的 unquote 函数把它还原。
+        return unquote(self._environ.get('PATH_INFO', ''))
+
+    @property
+    def content_type(self) -> str:
+        return self._environ.get('CONTENT_TYPE', '')
+
+    @property
+    def content_length(self) -> int:
+        return int(self._environ.get('CONTENT_LENGTH') or -1)
+
+    @property
+    def host(self) -> str:
+        return self._environ.get('HTTP_HOST', '')
+		
+    # Server 一般运行在反向代理的后面，为了获取真实的客户端IP，
+    # 首先检查 HTTP_X_FORWARDED_FOR，因为可能存在多层代理，所以取第一个，它最有可能是真实IP，
+    # 如果没有，再取 REMOTE_ADDR。当然，IP地址可以轻松的任意伪造，所以别太信赖它。
+    @property
+    def remote_addr(self) -> str:
+        env = self._environ
+        xff = env.get('HTTP_X_FORWARDED_FOR')
+
+        if xff is not None:
+            addr = xff.split(',')[0].strip()
+        else:
+            addr = env.get('REMOTE_ADDR', '0.0.0.0')
+        return addr
+    
+    # HTTP_COOKIE 是类似于 "a=1; b=3" 这种形式的字符串，我们把它解析为 {'a': 1, 'b': 3}，
+    # 为了偷懒，继续使用标准库，当然自己解析也很简单。
+    @cached_property
+    def cookies(self) -> dict:
+        http_cookie = self._environ.get('HTTP_COOKIE', '')
+        return {
+            cookie.key: unquote(cookie.value)
+            for cookie in SimpleCookie(http_cookie).values()
+        }
+    
+    # 解析 query string，使用标准库中的 parse_qs 函数，
+    # 它会把 "name=foo&num=1&num=3" 解析为 {'name': ['foo'], 'num': ['1', '3']}；
+    # 为了方便使用，当value是仅包含一个元素的数组时，提取出那个元素。
+    # 命名规范：PEP8 建议函数名是小写字母，但 Django 等框架这样命名的，我们约定俗成。
+    @cached_property
+    def GET(self) -> dict:
+        return {
+            key: squeeze(value)
+            for key, value in parse_qs(self.query_string).items()
+        }
+```
+
+以上的实现都很简单，下面开始解析请求体，它可能是文本或二进制。在解析之前，我们先把数据从 `environ['wsgi.input']` 中一股脑读出来，当然也可以边读边解析，那些效率高些，对内存也更友好，但是实现会麻烦些。
+
+```python
+    # 如果超过这个长度，即4M，就先把数据写到一个临时文件中。
+    MAX_BODY_SIZE = 1024 * 1024 * 4
+    
+    @cached_property
+    def _body(self) -> Union[BytesIO, TemporaryFile]:
+        # 某些情况下，客户端开始发送数据时，无法知道其长度，例如该数据是根据某些条件动态产生的，
+        # 这时数据就以若干系列分块的形式发送，此时请求头中就没有 Content-Length，
+        # 取而代之的是 Transfer-Encoding: chunked，
+        # 每一块的开头是当前块的长度，后面紧跟着'\r\n'，随后是内容本身；终止块也是个常规的块，不过长度为0。
+        # 解析分块传输的数据也不复杂，不过秉持着有懒就偷的精神，这里就忽略它了。
+        chunked = 'chunked' in self.headers.get('TRANSFER-ENCODING', '')
+        if chunked:
+            raise NotImplementedError('Chunked data are not supported')
+
+        stream = self._environ['wsgi.input']
+        
+        # 如果数据较大，防止占用过多内存，先将其写入文件；否则直接写入内存。
+        # 其实还应该施加一个限制，如果数据过大，比如超过配置的阈值，则不读取，直接甩一个bad request。
+        if self.content_length > self.MAX_BODY_SIZE:
+            fp = TemporaryFile()
+        else:
+            fp = BytesIO()
+
+        max_read = max(0, self.content_length)
+        while True:
+            bs = stream.read(min(max_read, 8192))
+            if not bs:
+                break
+            fp.write(bs)
+            max_read -= len(bs)
+
+        # 写完再读，需置指针回到开头，否则 EOF。
+        fp.seek(0)
+        # 替换掉原始的 wsgi.input，其使命已完成，不再能被读取。
+        self._environ['wsgi.input'] = fp
+        return fp
+    
+    @property
+    def body(self) -> Union[BytesIO, TemporaryFile]:
+        self._body.seek(0)
+        return self._body
+
+    @cached_property
+    def json(self) -> Optional[dict]:
+        ctype = self.content_type.lower().split(';')[0]
+        if ctype != 'application/json':
+            return None
+
+        try:
+            # 使用标准库的json模块，将body转为dict。
+            return json.loads(self.body)
+        except (ValueError, TypeError) as err:
+            # 后面会实现 HTTPError。
+            raise HTTPError(400, 'Invalid JSON', exception=err)
+```
+
+最后解析表单域或文件，即 ` Content-Type` 为 `application/x-www-form-urlencoded`，或 `multipart/form-data`。form-urlencoded 十分简单，它与 query string 的格式一样，即形如 `name1=value1&name2=value2`，而 form-multipart 解析就复杂的多。 
+
+比如通过 HTML form 长这样：
+
+```html
+<form action="/" method="post" enctype="multipart/form-data">
+  <input type="text" name="description" value="some text">
+  <input type="file" name="myFile">
+  <button type="submit">Submit</button>
+</form>
+```
+
+那么提交时，用户代理（浏览器）会生成类似这样的请求（忽略一些headers），每部分以 boundary 的值作为分隔符：
+
+```
+POST /foo HTTP/1.1
+Content-Length: 68137
+Content-Type: multipart/form-data; boundary=---------------------------974767299852498929531610575
+
+---------------------------974767299852498929531610575
+Content-Disposition: form-data; name="description"
+
+some text
+---------------------------974767299852498929531610575
+Content-Disposition: form-data; name="myFile"; filename="foo.txt"
+Content-Type: text/plain
+
+(content of the uploaded file foo.txt)
+---------------------------974767299852498929531610575
+```
+
+你可以自己尝试解析它，实现一个高效且健壮的解析算法是一个很好的编程练习，可以参考 Flask 的代码 [formparser.py](https://github.com/pallets/werkzeug/blob/master/src/werkzeug/formparser.py)。本文我们不准备自己动手实现，因为标准库里提供了解析的功能，然而，略微遗憾的是，标准库（cgi.FieldStorage）的实现好像有bug（也有可能是feature）。在~2013年我第一次阅读那段代码时，它还很粗糙，在写本文时，我又去撇了一眼，那个模块由 [Guido Van Rossum]([https://gvanrossum.github.io) 重写并维护，不过好像仍有问题。好在可以规避，不影响使用。
+
+```python
+    # 使用标准库解析表单或文件，比如对于以上的form，它会返回如下的dict：
+  	# {'description': 'some text', 'myFile': <FileStorage>}，
+    # 其中 req.POST['myfile'] 是FileStorage的一个实例，可以直接调用它的save方法保存文件。
+    @cached_property
+    def POST(self) -> dict:
+        fields = cgi.FieldStorage(fp=self.body,
+                                  environ=self._environ,
+                                  keep_blank_values=True)
+        # 我们在实例上保存一个FieldStorage的引用，如果不这样做，**稍后**读文件时，文件却被莫名关闭了。
+        self.__dict__['_cgi.FieldStorage'] = fields
+
+        fields = fields.list or []
+        post = dict()
+
+        for item in fields:
+          	# 如果item有属性filename，说明该item是一个文件域；
+            # 为了方便使用，用相关属性构一个FileStorage，它是我们自己实现的类，
+            # 是item的薄薄的一个封装，可以调用它的save方法，把文件保存在指定路径，
+            # 比如 req.POST['myfile'].save('/path/to/dir')
+            if item.filename:
+                post[item.name] = FileStorage(item.file, item.name,
+                                              item.filename, item.headers)
+            # 是普通的表单域
+            else:
+                post[item.name] = item.value
+        return post
+```
+
+最后是几个简单的方法：
+
+```python
+    def __iter__(self) -> Iterable:
+        return iter(self._environ)
+
+    def __len__(self) -> int:
+        return len(self._environ)
+
+    def __str__(self) -> str:
+        return '<{}: {} {}>'.format(self.__class__.__name__, self.method, self.path)
+
+    __repr__ = __str__
+```
+
+
 
 ###Response
 
@@ -160,3 +399,4 @@ def upload(req):
 ###MiniWeb
 
 ...
+
