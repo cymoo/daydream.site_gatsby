@@ -5,7 +5,7 @@ date: 2021-04-16
 description: 极简框架，与 Flask 有类似的 API
 ---
 
-本篇我们会来实现一个 web 框架，如果你熟悉 Python 中的 Django 或 Flask，就会觉得它很亲切，代码在这儿  [Github](https://github.com/cymoo/mini_web)。
+本篇我们会来实现一个 web 框架，如果你熟悉 Python 中的 Django 或 Flask，就会觉得它很亲切，完整代码在这儿  [Github](https://github.com/cymoo/mini_web)。
 
 ## 往期回顾
 
@@ -147,7 +147,7 @@ def upload(req):
 
 ### Request
 
-回忆以下，`environ` 包含了类似以下的内容：
+回忆一下，`environ` 包含了类似以下的内容：
 
 ```python
 {
@@ -369,21 +369,6 @@ Content-Type: text/plain
             else:
                 post[item.name] = item.value
         return post
-```
-
-最后是几个简单的方法：
-
-```python
-    def __iter__(self) -> Iterable:
-        return iter(self._environ)
-
-    def __len__(self) -> int:
-        return len(self._environ)
-
-    def __str__(self) -> str:
-        return '<{}: {} {}>'.format(self.__class__.__name__, self.method, self.path)
-
-    __repr__ = __str__
 ```
 
 前面用到了几个辅助类和函数：
