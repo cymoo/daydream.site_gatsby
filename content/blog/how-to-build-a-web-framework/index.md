@@ -550,6 +550,9 @@ def tr(key: str) -> str:
 
 ```python
 class Response:
+    """示例：
+    Response('hello world', {'content-type': 'text/plain'})
+    """
     default_status_code = 200
     default_content_type = 'text/html; charset=UTF-8'
 
@@ -676,6 +679,165 @@ class Response:
             rv += '{}: {}\n'.format(name.title(), value.strip())
         return rv
 ```
+
+JSON 或许现在是最常见的请求或响应的类型了，所以也要默认支持它。它的实现很简单，调用标准库序列化下，然后设置下 `Content-Type` 即可。
+
+```python
+class JSONResponse(Response):
+    """示例：
+    JSONResponse({'msg': 'hello world'})
+    """
+    def __init__(self,
+                 data: Union[list, dict],
+                 headers: Optional[dict] = None,
+                 **kw) -> None:
+        data = json.dumps(data, **kw).encode()
+        super().__init__(data, headers)
+        self.set_header('Content-Type', 'application/json')
+```
+
+很多时候，我们还需要重定向一个请求，实现也很简单，设置 `status_code` 为301或303，然后在 header 里添加重定向的目标路径或 URL 即可。
+
+```python
+class Redirect(Response):
+    """示例：
+    Redirect('https://bing.com')
+    Redirect('/foo', 303)
+    """
+    def __init__(self,
+                 redirect_to: str,
+                 status_code: int = 301,
+                 headers: Optional[dict] = None):
+        assert status_code in (301, 303), 'status code must be in (301, 303)'
+
+        super().__init__('', headers)
+        self.status_code = status_code
+        # 应该对url进行quote，为了安全，除了保留字符外，其他均应转义。
+        self.set_header('Location',
+                        quote(redirect_to, safe="/#%[]=:;$&()+,!?*@'~"))
+```
+
+或早或晚，我们的服务一定会出现错误，某些是能够预料到的，比如用户权限不足，请求的文件消失了，另一些是无法预料到的，比如内容或磁盘空间不够了，数据库连接不上了。这些时候，我们需要返回一个错误响应告知用户。
+
+`HTTPError` 同时继承 `Response` 和 `Exception`，这样我们就可以在代码中这么做了：`raise HTTPError(405)`。不过，多继承的使用场景极少，除非有十分正当的理由，否则不要使用它。
+
+```python
+class HTTPError(Response, Exception):
+    """示例：
+    raise HTTPError(405)
+    raise HTTPError(500, '电线被拔了')
+    raise HTTPError(500, 'oh, no', Exception('caused by some error...'))
+    """
+    def __init__(self,
+                 status_code: int = 500,
+                 description: Optional[str] = None,
+                 exception: Optional[Exception] = None,
+                 headers: Optional[dict] = None):
+        assert status_code in range(400, 600), 'status code must be 4XX or 5XX'
+
+        super(HTTPError,
+              self).__init__(description or HTTP_STATUS_LINES[status_code], headers)
+        super(Exception, self).__init__(description)
+        self.status_code = status_code
+        self.exception = exception
+
+    def __str__(self):
+        return "<{} '{}'>".format(type(self).__name__, self.status_line)
+```
+
+通过 HTTP 发送文件也是常见的场景，相比以上几种响应类型，它稍微麻烦一些。我们得多做一些检查，比如文件是否存在与可读；还要考虑缓存，比如根据缓存协商设置对应的头 `Etag`，`Last-Modified` 等；还要权衡是否支持断点续传等。
+
+```python
+class FileResponse(Response):
+    """示例：
+    FileResponse('me.jpg', '/path/to/dir')
+    FileResponse('hot.avi', '/path/to/dir', downloadable=True)
+    """
+    def __init__(
+        self,
+        filename: str,
+        root_path: str,
+        headers: Optional[dict] = None,
+        request: Optional[Request] = None,
+        downloadable: bool = False,
+    ) -> None:
+        super().__init__('', headers)
+        self.root_path = root_path = os.path.abspath(root_path)
+        self.file_path = file_path = os.path.abspath(
+            os.path.join(root_path, filename))
+        
+        # 检查文件权限，必不可少，因为可能存在目录遍历攻击等
+        self.check_file()
+
+        stats = os.stat(file_path)
+        self.set_header('Content-Length', str(stats.st_size))
+
+        mimetype, encoding = mimetypes.guess_type(filename)
+        if mimetype:
+            self.set_header('Content-Type', mimetype)
+        else:
+            self.set_header('Content-Type', 'application/octet-stream')
+        if encoding:
+            self.set_header('Content-Encoding', encoding)
+        
+        # 如果加上这个头，浏览器会将文件下载到本地，而不是在浏览器中显示。
+        if downloadable:
+            self.set_header('Content-Disposition',
+                            'attachment; filename="%s"' % filename)
+        # 如果用户传入了request参数，我们可以做到更多，
+        # 比如协商缓存，断点续传等。作为示例，设置个etag。
+        if request:
+            etag = '{}:{}:{}:{}'.format(stats.st_dev, stats.st_ino, stats.st_mtime, filename)
+            etag = hashlib.sha1(etag.encode()).hexdigest()
+            self.set_header('ETag', etag)
+
+            # 注意：某些浏览器不一定会发送'If-None-Match'，
+            # 如果它们在响应行中看到 'HTTP/1.0'。
+            if request.get_header('IF-NONE-MATCH') == etag:
+                self.status_code = 304
+                return
+
+            # 检查更多的头，比如'If-Modified-Since', 'Accept-ranges'...
+            # ...
+				
+        # 将文件流转为可迭代对象
+        self.data = FileWrapper(open(file_path, 'rb'))
+
+    def check_file(self) -> None:
+        if not self.file_path.startswith(self.root_path):
+            raise HTTPError(403, 'Access denied.')
+        if not os.path.exists(self.file_path) or not os.path.isfile(self.file_path):
+            raise HTTPError(404, 'File does not exist.')
+        if not os.access(self.file_path, os.R_OK):
+            raise HTTPError(403, 'No permission to access the file.')
+```
+
+下面是 `FileWrapper` 的实现，因为按照 WSGI，应用需要返回一个可迭代对象。
+
+```python
+class FileWrapper:
+    """把一个文件流转为可迭代对象"""
+
+    def __init__(self, stream, buffer_size: int = 8192):
+        self.stream = stream
+        self.buffer_size = buffer_size
+        # WSGI server负责关闭这个文件，
+        # 还记得吗，上一篇有这么行代码：
+        # if hasattr(result, 'close'): result.close()
+        if hasattr(stream, 'close'):
+            self.close = stream.close
+
+    def __iter__(self) -> 'FileWrapper':
+        return self
+
+    def __next__(self) -> bytes:
+        data = self.stream.read(self.buffer_size)
+        if data:
+            return data
+        raise StopIteration
+```
+
+
 
 ###Router
 
