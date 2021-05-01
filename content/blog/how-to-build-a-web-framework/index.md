@@ -18,7 +18,7 @@ def app(environ, start_response):
     path = environ['PATH_INFO']
     method = environ['REQUEST_METHOD']
     
-    # 当用户访问 / 路径，并且请求方法为 GET
+    # 当用户访问 / 路径，并且请求方法为GET
     if path == '/' and method == 'GET':
         content = b'hello world'
         start_response('200 OK',
@@ -26,10 +26,10 @@ def app(environ, start_response):
                         ('Content-Length', str(len(content)))])
         return [content]
 
-    # 当用户使用 POST 方法，向 /upload 路径上传一个文件
+    # 当用户使用POST方法，向/upload路径上传一个文件
     elif path == '/upload' and method == 'POST':
-        # 1. 从 environ['wsgi.input'] 中读取数据，如果数据较大，把它保存在临时文件中，如果太大，返回错误
-        # 2. 从读取好的数据中解析出文件域，这是个 dirty work
+        # 1. 从environ['wsgi.input']中读取数据，如果数据较大，把它保存在临时文件中，如果太大，返回错误
+        # 2. 从读取好的数据中解析出文件域，这是个dirty work
         # 3. 再将文件保存在指定的目录，同时要留意文件名或目录是否有问题
         # 4. 返回合适的响应数据
 
@@ -83,15 +83,15 @@ def upload(req):
 1. 基于装饰器的路由分发
 
    ```python
-   # 当访问 / 且请求方法为 GET 时，会调用函数 foo
+   # 当访问 / 且请求方法为GET时，会调用函数foo
    @app.get('/')
    def foo(req): pass
    
-   # 支持 URL 参数
+   # 支持URL参数
    @app.post('/user/<name>')
    def bar(req, name): pass
    
-   # 当访问 /upload 且方法为 GET 或 POST 时，会调用函数 baz
+   # 当访问/upload且方法为GET或POST时，会调用函数baz
    @app.route('/upload', methods=['GET', 'POST'])
    def baz(req): pass
    ```
@@ -104,9 +104,9 @@ def upload(req):
    @app.route('/user/<name>', methods=['GET', 'POST'])
    def user(req: Request, name: str):
        print(req.cookies)
-       # req.GET 为一个解析了 query string 的 dict
+       # req.GET为一个解析了query string的dict
        print(req.GET)
-       # req.POST 为一个包含了用户上传的表单和文件的 dict
+       # req.POST为一个包含了用户上传的表单和文件的dict
        print(req.POST)
        # ...
    ```
@@ -171,14 +171,14 @@ class Request:
     def __init__(self, environ: dict) -> None:
         self._environ = environ
     
-    # cached_property 的使用与 property 一样，但它只有第一次访问时才被计算；
+    # cached_property的使用与property一样，但它只有第一次访问时才被计算；
     # 随后被缓存起来，避免重复计算。稍后会给出它的实现。
     @cached_property
     def headers(self) -> dict:
         rv = {}
 
         for key, value in self._environ.items():
-            # environ 中大部分请求头以 HTTP_ 开始，为了看起来好看些，我们把前缀移除。
+            # environ中大部分请求头以HTTP_开始，为了看起来好看些，我们把前缀移除。
             if key.startswith('HTTP_'):
                 name = key[5:].replace('_', '-').upper()
                 rv[name] = value
@@ -198,8 +198,8 @@ class Request:
 
     @property
     def path(self) -> str:
-        # PATH_INFO 中的特殊字符一般都会被转义，比如空格会表示为 %20；
-        # 这里使用标准库中的 unquote 函数把它还原。
+        # PATH_INFO中的特殊字符一般都会被转义，比如空格会表示为%20；
+        # 这里使用标准库中的unquote函数把它还原。
         return unquote(self._environ.get('PATH_INFO', ''))
 
     @property
@@ -217,9 +217,9 @@ class Request:
     @property
     def remote_addr(self) -> str:
         """获取客户端的IP地址。
-        Server 一般运行在反向代理的后面，为了获取真实的客户端IP，
-        首先检查 HTTP_X_FORWARDED_FOR，可能有多层代理，取第一个，最有可能是真实IP，
-        如果没有，再取 REMOTE_ADDR。
+        Server一般运行在反向代理的后面，为了获取真实的客户端IP，
+        首先检查HTTP_X_FORWARDED_FOR，可能有多层代理，取第一个，最有可能是真实IP，
+        如果没有，再取REMOTE_ADDR。
         当然，IP地址可以轻松的任意伪造，所以别太信赖它。
         """
         env = self._environ
@@ -234,7 +234,7 @@ class Request:
     @cached_property
     def cookies(self) -> dict:
         """获取cookies。
-        HTTP_COOKIE 是类似于"a=1; b=3"这种形式的字符串，
+        HTTP_COOKIE是类似于"a=1; b=3"这种形式的字符串，
         返回 {'a': 1, 'b': 3}。
         """
         http_cookie = self._environ.get('HTTP_COOKIE', '')
@@ -244,11 +244,11 @@ class Request:
             for cookie in SimpleCookie(http_cookie).values()
         }
     
-    # 命名规范：PEP8 建议函数名是小写字母，但 Django 等框架这样命名的，约定俗成之。
+    # 命名规范：PEP8建议函数名是小写字母，但Django等框架这样命名的，约定俗成之。
     @cached_property
     def GET(self) -> dict:
         """使用标准库的parse_qs函数，解析query string。
-        Query string 是类似于"name=foo&num=1&num=3"这种形式的字符串，
+        Query string是类似于"name=foo&num=1&num=3"这种形式的字符串，
         返回 {'name': ['foo'], 'num': ['1', '3']}。
         为了方便使用，当value是仅包含一个元素的数组时，提取出那个元素。
         """
@@ -269,8 +269,8 @@ class Request:
         """从'wsgi.input'中读取数据至内存或临时文件中。"""
         
         # 某些情况下，客户端开始发送数据时，无法知道其长度，例如该数据是根据某些条件动态产生的，
-        # 这时数据就以若干系列分块的形式发送，此时请求头中就没有 Content-Length，
-        # 取而代之的是 Transfer-Encoding: chunked，
+        # 这时数据就以若干系列分块的形式发送，此时请求头中就没有Content-Length，
+        # 取而代之的是Transfer-Encoding: chunked，
         # 每一块的开头是当前块的长度，后面紧跟着'\r\n'，随后是内容本身；终止块也是个常规的块，不过长度为0。
         # 解析分块传输的数据也不复杂，不过秉持着有懒就偷的精神，这里就忽略它了。
         chunked = 'chunked' in self.headers.get('TRANSFER-ENCODING', '')
@@ -294,9 +294,9 @@ class Request:
             fp.write(bs)
             max_read -= len(bs)
 
-        # 写完再读，需置指针回到开头，否则 EOF。
+        # 写完再读，需置指针回到开头，否则EOF。
         fp.seek(0)
-        # 替换掉原始的 wsgi.input，其使命已完成，不再能被读取。
+        # 替换掉原始的wsgi.input，其使命已完成，不再能被读取。
         self._environ['wsgi.input'] = fp
         return fp
     
@@ -315,7 +315,7 @@ class Request:
             # 使用标准库的json模块，将body转为dict。
             return json.loads(self.body)
         except (ValueError, TypeError) as err:
-            # 后面会实现 HTTPError。
+            # 后面会实现HTTPError。
             raise HTTPError(400, 'Invalid JSON', exception=err)
 ```
 
@@ -383,6 +383,19 @@ Content-Type: text/plain
         return post
 ```
 
+```python
+    def __str__(self) -> str:
+    		"""
+        >>> Request({'REQUEST_METHOD': 'POST', 'PATH_INFO': '/upload'})
+        <Request: POST /upload>
+        """
+        return '<{}: {} {}>'.format(self.__class__.__name__, self.method, self.path)
+
+    __repr__ = __str__
+```
+
+
+
 前面用到了几个辅助类和函数：
 
 ```python
@@ -413,9 +426,9 @@ class cached_property:
         if obj is None:
             return self
         # 对于一个对象中属性的查找，优先级如下：
-        # 1. 数据描述符：即属性定义了 __get__，__set__ 方法
-        # 2. 实例字典：即 __dict__
-        # 3. 属性描述符：即属性定义了 __get__ 方法
+        # 1. 数据描述符：即属性定义了__get__，__set__ 方法
+        # 2. 实例字典：即__dict__
+        # 3. 属性描述符：即属性定义了__get__ 方法
         # 4. __getattr__
         # 我们可以在第一次访问时把返回的值放在__dict__中，
         # 这样下次就不会再计算__get__，达到了缓存的目的。
