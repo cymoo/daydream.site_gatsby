@@ -128,7 +128,7 @@ class MiniServer:
             'wsgi.run_once': False,
             'wsgi.errors': sys.stderr,
 
-            # The values will be override
+            # 以下值将被会被重写
             'PATH_INFO': '/',
             'REQUEST_METHOD': 'GET',
             'QUERY_STRING': '',
@@ -220,6 +220,9 @@ User-Agent: HTTPie/2.3.0
     def handle_request(self, queue: Queue) -> None:
         while True:
             conn, addr = queue.get()
+          	# 为了方便读和写，我们创建两个与socket关联的文件，
+            # 它们像普通文件一样，可以调用read和write，
+            # 等同于对socket的recv和send。
             rfile = conn.makefile('rb')
             wfile = conn.makefile('wb')
 
@@ -328,7 +331,19 @@ server.set_application(app)
 server.run_forever()
 ```
 
+## 番外：数据是如何发送与接收的？
 
+1. 数据是怎么发送的？
+
+   在代码里，我们使用 `sock.send(data)` 将数据发送出去，真的这么简单吗，数据就这么直接进入到网线里了吗？不，没那么简单，数据会首先进入协议栈，然后逐一通过每一层并添加一些头部信息（有时还要添加尾部信息），再经过一系列复杂的过程转成光电信号。
+
+   ![网络协议](./tcp-ip.png)
+
+2. 数据是如何发送的？
+
+   基本上是上图的逆过程，数据从链路层逐一去掉头部，最终 `sock.recv(num)` 的就是用户数据。
+
+TCP/IP 是个很优雅且迷人的协议，如果你对此很好奇，[TCP/IP详解 卷1：协议](https://book.douban.com/subject/1088054/) 可以满足你。如果你想吃个快餐，可以食用 [协议森林](https://www.cnblogs.com/vamei/archive/2012/12/05/2802811.html)，图文并茂，风趣幽默。
 
 ## 遗漏了啥
 

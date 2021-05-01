@@ -678,6 +678,8 @@ class Response:
         for name, value in self.header_list:
             rv += '{}: {}\n'.format(name.title(), value.strip())
         return rv
+    
+    __repr__ = __str__
 ```
 
 JSON 或许现在是最常见的请求或响应的类型了，所以也要默认支持它。它的实现很简单，调用标准库序列化下，然后设置下 `Content-Type` 即可。
@@ -726,7 +728,7 @@ class HTTPError(Response, Exception):
     """示例：
     raise HTTPError(405)
     raise HTTPError(500, '电线被拔了')
-    raise HTTPError(500, 'oh, no', Exception('caused by some error...'))
+    raise HTTPError(500, 'oh, no', Exception('caused by me...'))
     """
     def __init__(self,
                  status_code: int = 500,
