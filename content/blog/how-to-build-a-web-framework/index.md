@@ -214,11 +214,14 @@ class Request:
     def host(self) -> str:
         return self._environ.get('HTTP_HOST', '')
 		
-    # Server 一般运行在反向代理的后面，为了获取真实的客户端IP，
-    # 首先检查 HTTP_X_FORWARDED_FOR，因为可能存在多层代理，所以取第一个，它最有可能是真实IP，
-    # 如果没有，再取 REMOTE_ADDR。当然，IP地址可以轻松的任意伪造，所以别太信赖它。
     @property
     def remote_addr(self) -> str:
+        """获取客户端的IP地址。
+        Server 一般运行在反向代理的后面，为了获取真实的客户端IP，
+        首先检查 HTTP_X_FORWARDED_FOR，可能有多层代理，取第一个，最有可能是真实IP，
+        如果没有，再取 REMOTE_ADDR。
+        当然，IP地址可以轻松的任意伪造，所以别太信赖它。
+        """
         env = self._environ
         xff = env.get('HTTP_X_FORWARDED_FOR')
 
@@ -228,22 +231,27 @@ class Request:
             addr = env.get('REMOTE_ADDR', '0.0.0.0')
         return addr
     
-    # HTTP_COOKIE 是类似于 "a=1; b=3" 这种形式的字符串，我们把它解析为 {'a': 1, 'b': 3}，
-    # 为了偷懒，继续使用标准库，当然自己解析也很简单。
     @cached_property
     def cookies(self) -> dict:
+        """获取cookies。
+        HTTP_COOKIE 是类似于"a=1; b=3"这种形式的字符串，
+        返回 {'a': 1, 'b': 3}。
+        """
         http_cookie = self._environ.get('HTTP_COOKIE', '')
         return {
             cookie.key: unquote(cookie.value)
+            # 为了偷懒，继续使用标准库，当然自己解析也很简单。
             for cookie in SimpleCookie(http_cookie).values()
         }
     
-    # 解析 query string，使用标准库中的 parse_qs 函数，
-    # 它会把 "name=foo&num=1&num=3" 解析为 {'name': ['foo'], 'num': ['1', '3']}；
-    # 为了方便使用，当value是仅包含一个元素的数组时，提取出那个元素。
-    # 命名规范：PEP8 建议函数名是小写字母，但 Django 等框架这样命名的，我们约定俗成。
+    # 命名规范：PEP8 建议函数名是小写字母，但 Django 等框架这样命名的，约定俗成之。
     @cached_property
     def GET(self) -> dict:
+        """使用标准库的parse_qs函数，解析query string。
+        Query string 是类似于"name=foo&num=1&num=3"这种形式的字符串，
+        返回 {'name': ['foo'], 'num': ['1', '3']}。
+        为了方便使用，当value是仅包含一个元素的数组时，提取出那个元素。
+        """
         return {
             key: squeeze(value)
             for key, value in parse_qs(self.query_string).items()
@@ -258,6 +266,8 @@ class Request:
     
     @cached_property
     def _body(self) -> Union[BytesIO, TemporaryFile]:
+        """从'wsgi.input'中读取数据至内存或临时文件中。"""
+        
         # 某些情况下，客户端开始发送数据时，无法知道其长度，例如该数据是根据某些条件动态产生的，
         # 这时数据就以若干系列分块的形式发送，此时请求头中就没有 Content-Length，
         # 取而代之的是 Transfer-Encoding: chunked，
@@ -311,7 +321,7 @@ class Request:
 
 最后解析表单域或文件，即 ` Content-Type` 为 `application/x-www-form-urlencoded`，或 `multipart/form-data`。form-urlencoded 十分简单，它与 query string 的格式一样，即形如 `name1=value1&name2=value2`，而 form-multipart 解析就复杂的多。 
 
-比如通过 HTML form 长这样：
+比如某个 HTML form 长这样：
 
 ```html
 <form action="/" method="post" enctype="multipart/form-data">
@@ -343,11 +353,13 @@ Content-Type: text/plain
 你可以自己尝试解析它，实现一个高效且健壮的解析算法是一个很好的编程练习，可以参考 Flask 的代码 [formparser.py](https://github.com/pallets/werkzeug/blob/master/src/werkzeug/formparser.py)。本文我们不准备自己动手实现，因为标准库里提供了解析的功能，然而，略微遗憾的是，标准库（cgi.FieldStorage）的实现好像有bug（也有可能是feature）。在~2013年我第一次阅读那段代码时，它还很粗糙，在写本文时，我又去撇了一眼，那个模块由 [Guido Van Rossum]([https://gvanrossum.github.io) 重写并维护，不过好像仍有问题。好在可以规避，不影响使用。
 
 ```python
-    # 使用标准库解析表单或文件，比如对于以上的form，它会返回如下的dict：
-  	# {'description': 'some text', 'myFile': <FileStorage>}，
-    # 其中 req.POST['myfile'] 是FileStorage的一个实例，可以直接调用它的save方法保存文件。
     @cached_property
     def POST(self) -> dict:
+        """使用标准库解析表单或文件。
+        比如对于以上的form，它会返回如下的dict：
+        {'description': 'some text', 'myFile': <FileStorage>}，
+        其中'myfile'对应的值是FileStorage的一个实例，可以直接调用它的save方法保存文件。
+        """
         fields = cgi.FieldStorage(fp=self.body,
                                   environ=self._environ,
                                   keep_blank_values=True)
@@ -389,6 +401,10 @@ def squeeze(value):
 
 ```python
 class cached_property:
+    """一个装饰器，把一个函数转为惰性的属性。
+    被装饰的函数只会被调用一次，随后它的值会被缓存起来。
+    Python3.8及以上版本的functools中已经有了这个类。
+    """
     def __init__(self, func):
         self.__doc__ = func.__doc__
         self.func = func
@@ -396,13 +412,20 @@ class cached_property:
     def __get__(self, obj, cls):
         if obj is None:
             return self
+        # 对于一个对象中属性的查找，优先级如下：
+        # 1. 数据描述符：即属性定义了 __get__，__set__ 方法
+        # 2. 实例字典：即 __dict__
+        # 3. 属性描述符：即属性定义了 __get__ 方法
+        # 4. __getattr__
+        # 我们可以在第一次访问时把返回的值放在__dict__中，
+        # 这样下次就不会再计算__get__，达到了缓存的目的。
         value = obj.__dict__[self.func.__name__] = self.func(obj)
         return value
 ```
 
 ```python
 class FileStorage:
-    """A thin wrapper over incoming files."""
+    """简单的对上传的文件的封装，提供save方法，用于保存文件。"""
 
     def __init__(self,
                  stream: BytesIO,
@@ -416,11 +439,19 @@ class FileStorage:
 
     @staticmethod
     def secure_filename(filename: str) -> str:
+        """使用正则表达式过滤除了常见中英文和数字之外的其他字符。
+        不要相信用户输入的任何东西，包括上传文件的文件名。
+        文件名有可能经过精心的构造，有可能攻击你的系统。
+        """
         filename = re.sub(r'[^\u4e00-\u9fa5\w\-.]+', '', filename).strip()
         filename = re.sub(r'[-\s]+', '-', filename).strip('.-')
         return filename[:255] or 'empty'
 
     def save(self, dst: str, overwrite=False) -> None:
+        """保存上传的文件。
+        :param dst: 文件保存的位置，可以是文件夹或是完整的路径。
+        :param overwrite: 如果已存在同名的文件，是否覆盖。
+        """
         if os.path.isdir(dst):
             filepath = os.path.join(dst, self.secure_filename(self.raw_filename))
         else:
@@ -429,12 +460,13 @@ class FileStorage:
         if os.path.exists(filepath) and not overwrite:
             raise IOError(500, 'File exists: {}.'.format(filepath))
 
+        # 保存读取前文件指针的偏移，读取完成后，恢复之。
         offset = self.stream.tell()
 
         with open(filepath, 'wb') as fp:
             stream = self.stream
             while True:
-                buf = stream.read(4096)
+                buf = stream.read(8192)
                 if not buf:
                     break
                 fp.write(buf)
