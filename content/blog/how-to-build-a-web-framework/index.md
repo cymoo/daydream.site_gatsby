@@ -167,6 +167,22 @@ def upload(req):
 `Request` 即是对 `environ` 的 封装，提供了更友好的访问接口；它的属性几乎都是只读的。
 
 ```python
+import cgi
+import hashlib
+import json
+import logging
+import mimetypes
+import os
+import re
+import sys
+from http.client import responses
+from http.cookies import SimpleCookie
+from io import BytesIO
+from typing import *
+from tempfile import TemporaryFile
+from urllib.parse import unquote, parse_qs, quote
+
+
 class Request:
     def __init__(self, environ: dict) -> None:
         self._environ = environ
@@ -491,7 +507,175 @@ class FileStorage:
 
 ###Response
 
-...
+HTTP 响应包括响应头和响应体，响应头用于描述响应，响应体则是响应的消息主体。
+
+响应头的第一行被称为 status line，它指示 HTTP 的请求是否成功完成，它分为5类：信息响应（100–199），成功响应（200–299），重定向（300–399），客户端错误（400–499）和服务器错误 （500–599）。比如常见的 200 OK，404 Not Found 和 500 Server Error 等。
+
+以下是一个 HTTP 响应的简单示例：
+
+```
+HTTP/1.1 200 OK
+Connection: keep-alive
+Content-Encoding: gzip
+Content-Type: application/json
+Content-Length: 22
+Date: Sat, 01 May 2021 11:20:31 GMT
+ETag: W/"608cf7b4-4ad6"
+Expires: Sat, 01 May 2021 11:20:30 GMT
+Last-Modified: Sat, 01 May 2021 06:39:48 GMT
+Server: nginx/1.18.0
+
+{"msg": "hello world"}
+```
+
+`Response` 类提供了设置响应头和体的方法。我们先定义一个常量，它包含了大部分 status line。它的值为：`{200: '200 OK', 400: '400 Bad Request', 405: '405 Method Not Allowed', ...}`。
+
+```python
+HTTP_STATUS_LINES = {
+    key: f'{key} {value}'
+    for key, value in responses.items() # responses来自标准库http.client
+}
+```
+
+再定义一个简单的函数：
+
+```python
+def tr(key: str) -> str:
+    """把请求头的名字转为符合规范的格式。
+    >>> tr('content_type')
+    'Content-Type'
+    """
+    return key.title().replace('_', '-')
+```
+
+```python
+class Response:
+    default_status_code = 200
+    default_content_type = 'text/html; charset=UTF-8'
+
+    def __init__(self,
+                 # FileWrapper把一个类文件对象转为iterable，稍后实现。
+                 data: Union[str, bytes, FileWrapper],
+                 headers: Optional[dict] = None) -> None:
+        self.status_code = self.default_status_code
+        self._cookies = SimpleCookie()
+        # self._headers键的值为数组，
+        # 比如{'Cache-Control': ['no-cache', 'no-store']}。
+        self._headers = {}
+        
+        # data必须是bytes或bytes的可迭代容器。
+        if isinstance(data, str):
+            data = data.encode()
+
+        self.set_header('Content-Length', str(len(data)))
+        # 回忆上篇文章，WSGI要求应用返回的是一个包含bytes的可迭代对象，
+        # 如果不把它放在数组里，socket就会一个字节一个字节的send，
+        # 那样的效率会极其感人。
+        self.data = [data]
+
+        # 调用者传入的headers的格式不一定正确，
+        # 所以不能直接self._headers = headers。
+        if headers:
+            for key, value in headers.items():
+                if isinstance(value, (list, tuple)):
+                    for item in value:
+                        self.add_header(key, item)
+                elif isinstance(value, str):
+                    self.add_header(key, value)
+
+    def get_header(self, name: str) -> Optional[str]:
+        rv = self._headers.get(tr(name))
+        if rv is None:
+            return None
+        return squeeze(rv)
+
+    def set_header(self, name: str, value: str) -> None:
+        self._headers[tr(name)] = [value]
+
+    def add_header(self, name: str, value: str) -> None:
+        self._headers.setdefault(tr(name), []).append(value)
+
+    def unset_header(self, name: str) -> None:
+        del self._headers[tr(name)]
+
+    def has_header(self, name: str) -> bool:
+        return tr(name) in self._headers
+
+    @property
+    def headers(self) -> dict:
+        return self._headers
+
+    @property
+    def header_list(self) -> List[Tuple[str, str]]:
+        """把headers转成符合WSGI规范的形式，即[(name, value), ...]。
+        >>> res = Response(data='', headers={'a': [1, 2], 'b': 3})
+        >>> res.header_list
+        [('A', 1), ('A', 2), ('B', 3)]
+        """
+        headers = list(self._headers.items())
+
+        if 'Content-Type' not in self._headers:
+            headers.append(('Content-Type', [self.default_content_type]))
+
+        headers = [(name, val) for (name, values) in headers for val in values]
+
+        if self._cookies:
+            for cookie in self._cookies.values():
+                headers.append(('Set-Cookie', cookie.OutputString()))
+
+        return headers
+
+    @property
+    def status_line(self) -> str:
+      	"""
+        >>> Response('').status_line
+        '200 OK'
+        >>> res = Response('')
+        >>> res.status_code = 404
+        >>> res.status_line
+        '404 Not Found'
+        """
+        return HTTP_STATUS_LINES.get(self.status_code, f'{self.status_code} Unknown')
+
+    def set_cookie(
+        self,
+        name: str,
+        value: str,
+        path: str = '/',
+        secure: bool = False,
+        httponly: bool = False,
+        domain: Optional[str] = None,
+        max_age: Optional[int] = None,
+      	# Python处理时间和日期的标准库的API十分不好用，
+      	# 尤其涉及到时区的处理，所以我们就忽略掉expires。
+        # 这个库好用的多：https://arrow.readthedocs.io
+        # expires: Optional[Union[str, datetime, int, float]] = None,
+    ) -> None:
+        self._cookies[name] = value
+
+        if path:
+            self._cookies[name]['path'] = path
+        if secure:
+            self._cookies[name]['secure'] = secure
+        if httponly:
+            self._cookies[name]['httponly'] = httponly
+        if domain:
+            self._cookies[name]['domain'] = domain
+        if max_age:
+            self._cookies[name]['max-age'] = max_age
+
+    def unset_cookie(self, name: str, **kw) -> None:
+      	# 删掉cookie，把max_age和expires设置<=0的值即可。
+        kw['max_age'] = -1
+        kw['expires'] = 0
+        self.set_cookie(name, '', **kw)
+
+    def __str__(self) -> str:
+        rv = ''
+        for name, value in self.header_list:
+            rv += '{}: {}\n'.format(name.title(), value.strip())
+        return rv
+```
 
 ###Router
 

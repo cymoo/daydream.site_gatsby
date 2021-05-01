@@ -48,7 +48,7 @@ Hello, World!
 
 为了让我们的 server 能与 Python 中的大部分 web 框架一起工作，我们需要遵循 WSGI 协议，全称为 Python Web Server Gateway Interface，它规定了 web server 和 web 框架之间的标准接口，以提高 web 应用在不同 web server 之间的可移植性，如果你对 Java 熟悉，可以理解它与 servlet API 类似。
 
-WSGI 规定，web 程序需要有一个可调用对象，它可以是函数、实现 `__iter__`的类、或是实现`__call__`的类的对象。该对象接收两个参数：1. `environ`，为一个包含所有请求信息的 `dict`；2. `start_response`，为一个函数，用来发起响应，其参数包括状态码和响应的 headers。该对象需要返回一个可迭代对象。
+WSGI 规定，web 程序需要有一个可调用对象，它可以是函数、实现 `__iter__`的类、或是实现`__call__`的类的对象。该对象接收两个参数：1. `environ`，为一个包含所有请求信息的 `dict`；2. `start_response`，为一个函数，用来发起响应，其参数包括状态码和响应的 header。该对象需要返回一个可迭代对象。
 
 WSGI 很简单，如下，我们使用标准库中它的简单的实现，继续来一个 hello world。
 
@@ -77,9 +77,9 @@ server.serve_forever()
 1. 创建一个监听套接字（listening socket）`sock = socket(...)`，并`bind` 和 `listen`。
 2. 调用 `sock.accept()`，如果没有请求到来，会阻塞在原地，否则返回一个连接套接字（connected socket） `conn`。
 3. 为了方便的读取请求头部信息和写入响应内容，创建两个与 socket 关联的文件，分别用于读和写：`rfile=conn.makefile('rb')`和`wfile=conn.makefile('wb')`，可以认为它们等效于`conn.recv(...)`和`conn.send(...)`；这样就可以像读取常规文件一样，按行从 socket 中读取数据，即`rfile.readline()`。
-4. 调用一次`rfile.readline()`，首先解析出请求的方法和路径；然后一直调用`rfile.readline()`，解析请求的headers，直至遇到`\r\n`，这代表请求头的结束；使用上面解析到的信息，构造出该次请求的环境`environ`，它是一个`dict`；注意，我们不会继续解析该请求的内容，而是让应用或框架自行解析`environ['wsgi.input'] = rfile`。
-5. 定义一个函数`start_response(status_line, response_headers)`，它会将响应的头部信息发送给客户端；然后我们调用 web 应用对象`app`：`app(start_response, environ)`，该`app`内部会根据`environ`信息，调用`start_response`，并返回一个可迭代对象，比如数组等，这将是发送给客户端的内容，比如文本，图片或视频等。
-6. 使用`wfile.write(xxx)`，将上述返回的内容写入 socket；并关闭相关的文件，做善后工作等。
+4. 调用一次 `rfile.readline()`，首先解析出请求的方法和路径；然后一直调用 `rfile.readline()`，解析请求的 header，直至遇到 `\r\n`，这代表请求头的结束；使用上面解析到的信息，构造出该次请求的环境 `environ`，它是一个 `dict`；注意，我们不会继续解析该请求的内容，而是让应用或框架自行解析 `environ['wsgi.input'] = rfile`。
+5. 定义一个函数 `start_response(status_line, response_headers)`，它会将响应的头部信息发送给客户端；然后我们调用 web 应用对象 `app`：`app(start_response, environ)`，该 `app` 内部会根据 `environ` 信息，调用 `start_response`，并返回一个可迭代对象，比如数组等，这将是发送给客户端的内容，比如文本，图片或视频等。
+6. 使用 `wfile.write(xxx)`，将上述返回的内容写入 socket；并关闭相关的文件，做善后工作等。
 
 为了支持基本的并发请求，此 server 会使用线程池，它用一个 `Queue`轻松实现。
 
@@ -146,9 +146,9 @@ class MiniServer:
 
 ### 解析请求行
 
-请求行是 HTTP 的第一行，它的形式为 `GET /index.html HTTP/1.1`，即分别是请求方法，路径和 HTTP 协议版本。
+请求行是 HTTP 头的第一行，它的形式为 `GET /index.html HTTP/1.1`，即分别是请求方法，路径和 HTTP 协议版本。
 
-注意，该函数的参数为一个文件对象，这使得我们可以像读文件一样，`rfile.readline`，从 socket 中读取数据。当然，也可以使用 `socket.recv(num_read)`来读数据。但是，HTTP的头部都以`\r\n`来分割，而使用函数 recv 时需要传入读取的字节数，这会让解析 header 变得稍微麻烦些。
+注意，该函数的参数为一个文件对象，这使得我们可以像读文件一样，`rfile.readline`，从 socket 中读取数据。当然，也可以使用 `socket.recv(num_read)`来读数据。但是，HTTP的头部都以 `\r\n` 来分割，而使用函数 recv 时需要传入读取的字节数，这会让解析 header 变得稍微麻烦些。
 
 从 socket 读取的数据为字节流，所以需要将其 decode 为 `unicode`。
 
@@ -171,9 +171,20 @@ class MiniServer:
         }
 ```
 
-### 解析请求 headers
+### 解析请求头
 
-逐行读取，然后将 header 转成协议要求的 `XXX_XXX` 或 `HTTP_XXX_XXX` 形式。
+请求头表示在 HTTP 请求或响应中用来传递附加信息的字段。以下是一个示例：
+
+```
+GET /index.html HTTP/1.1
+Host: example.com
+Accept: */*
+Accept-Encoding: gzip, deflate
+Connection: keep-alive
+User-Agent: HTTPie/2.3.0
+```
+
+我们逐行读取，然后将 header 转成协议要求的 `XXX_XXX` 或 `HTTP_XXX_XXX` 形式。
 
 ```python
     @staticmethod
@@ -187,7 +198,8 @@ class MiniServer:
 
             key, value = line.strip().split(': ', maxsplit=1)
             key = key.upper().replace('-', '_')
-
+            
+            # 这儿是两个例外，不需要加前缀HTTP_
             if key not in ('CONTENT_TYPE', 'CONTENT_LENGTH'):
                 key = 'HTTP_' + key
             headers[key] = value
@@ -200,7 +212,7 @@ class MiniServer:
 
  `handle_request`会被多个线程调用，`queue` 是线程安全的，如果没有请求到来时，线程会阻塞在 `queue.get()`处。
 
-函数`start_response`会发送请求头，由web 框架或应用调用它，这是 server 和框架之间的约定。然后我们调用 `app` 对象，它会返回一个可迭代对象。对于请求 headers 和 body，都不加修饰的直接将其发送出去。严肃的 web server 一般都会对其进行进一步处理，比如修改或添加某些 header，修改或压缩返回的数据，和检查数据的有效性等。
+函数`start_response`会发送请求头，由web 框架或应用调用它，这是 server 和框架之间的约定。然后我们调用 `app` 对象，它会返回一个可迭代对象。对于请求 header 和 body，都不加修饰的直接将其发送出去。严肃的 web server 一般都会对其进行进一步处理，比如修改或添加某些 header，修改或压缩返回的数据，和检查数据的有效性等。
 
 这里的 `start_response`与 WSGI 规范不一致，规范要求它要返回一个 `write` 函数，用来写数据。而且，一些错误检查和异常处理也被忽略了。
 
