@@ -186,6 +186,9 @@ from urllib.parse import unquote, parse_qs, quote
 class Request:
     def __init__(self, environ: dict) -> None:
         self._environ = environ
+        # 把wsgi app对象挂在request上，
+        # 这样我们就可以方便的读取诸如全局配置等信息。
+        self.app = None
     
     # cached_property的使用与property一样，但它只有第一次访问时才被计算；
     # 随后被缓存起来，避免重复计算。稍后会给出它的实现。
@@ -880,8 +883,8 @@ class FileWrapper:
 class Router:
     """路由用于把请求匹配到一个函数。"""
     
-    # patterns用于把URL转为正则表达式，比如：
-    # /page/<num:int>会被转为/page/(\d+)
+    # patterns用于把URL变量替换为正则表达式，比如：
+    # <num:int>会被转为(\d+)
     patterns = [
         (r'<\w+>', r'([\\w-]+)'),
         (r'<\w+:\s*int>', r'(\\d+)'),
@@ -892,6 +895,7 @@ class Router:
         self.rules = []
 
     def add(self, rule: str, method: str, func: Callable) -> None:
+      	# 替换URL变量为正则表达式
         for pat, repl in self.patterns:
             rule = re.sub(pat, repl, rule)
         rule = '^' + rule + '$'
@@ -942,5 +946,211 @@ class Router:
 
 ###MiniWeb
 
-...
+这个类，将 `Request`、`Response` 和 `Router` 串联了起来，管理从请求到响应的整个流程。
+
+```python
+class MiniWeb:
+    """代表一个web应用，包含了路由，装饰器和配置等，其实例是一个WSGI的应用。
+    示例：
+    app = MiniWeb()
+    
+    @app.get('/'):
+    def foo(req):
+        return 'hello world'
+    
+    app.run()
+    """
+
+    def __init__(self, config: Optional[dict] = None):
+        self.router = Router()
+        # 全局错误处理器
+        self.error_handlers = {}
+        # 全局配置，诸如{'ENV': 'development', 'SECRET_KEY': '123', ...}
+        self.config = config or {}
+
+    def add_rule(self, rule: str, method: str, func: Callable) -> None:
+        self.router.add(rule, method, func)
+
+    def route(self, rule: str, methods: Union[str, List[str]]) -> Callable:
+        """装饰器，用于添加路由规则。
+        示例：
+        @app.route('/upload', methods=['GET', 'POST'])
+        def upload(req):
+            pass
+        """
+        def wrapper(func):
+            if isinstance(methods, list):
+                for mtd in methods:
+                    self.add_rule(rule, mtd, func)
+            else:
+                self.add_rule(rule, methods, func)
+            return func
+
+        return wrapper
+
+    def get(self, rule: str) -> Callable:
+        """装饰器，用于添加路由规则，方法为GET。
+        示例：
+        @app.get('/')
+        def index(req):
+            pass
+        """
+        return self.route(rule, 'GET')
+
+    def post(self, rule: str) -> Callable:
+        return self.route(rule, 'POST')
+
+    def put(self, rule: str) -> Callable:
+        return self.route(rule, 'PUT')
+
+    def delete(self, rule: str) -> Callable:
+        return self.route(rule, 'DELETE')
+
+    def error(self, status_code: int) -> Callable:
+        """装饰器，用于添加全局错误处理器。
+        示例：
+        @app.error(404)
+        def handle_404(req, err):
+            pass
+        """
+        def wrapper(func):
+            self.error_handlers[status_code] = func
+            return func
+
+        return wrapper
+      
+    def wsgi(self, environ: dict, start_response: Callable) -> Iterable[bytes]:
+        """即为WSGI应用，可将app.wsgi传给WSGI server。
+        它的主要步骤为：
+        1. 根据environ构造Request对象。
+        2. 根据请求路径和方法从router中查找处理函数。
+        3. 调用该函数，对返回的结果做转换和检查，生成Response对象。
+        4. 若以上发生错误，根据错误码，查找并调用全局处理函数。
+        5. 最后，调用start_response，并返回最终的响应数据。
+        """
+        request = Request(environ)
+        request.app = self
+        try:
+            func, args = self.router.match(request.path, request.method)
+            # 视图函数返回的可能是list或dict等，所以需要对结果做转换。
+            response = self._cast(func(request, *args))
+        except HTTPError as err:
+            logging.exception(err)
+            response = err
+        except Exception as err:
+            logging.exception(err)
+            # 如果返回的不是HTTPError，将其包装为500 error。
+            response = HTTPError(500, exception=err)
+
+        if isinstance(response, HTTPError):
+            # 调用错误处理函数，如果该函数有返回值，
+            # 那么将该值作为最终响应。
+            result = self._handle_error(request, response)
+            if result:
+                response = result
+
+        start_response(response.status_line, response.header_list)
+        return response.data
+      
+    def __call__(self, environ: dict, start_response: Callable):
+        """app对象本身也是个WSGI应用，可将app传给WSGI server。"""
+        return self.wsgi(environ, start_response)
+      
+    @staticmethod
+    def _cast(response: Any) -> Response:
+        if isinstance(response, Response):
+            return response
+        if isinstance(response, (str, bytes)):
+            return Response(response)
+        if isinstance(response, (list, dict)):
+            return JSONResponse(response)
+        raise ValueError('Invalid response')
+
+    def _handle_error(self, req: Request, error: HTTPError) -> Optional[Any]:
+        handler = self.error_handlers.get(error.status_code)
+        if handler:
+            result = handler(req, error)
+            if result:
+                return self._cast(result)
+```
+
+Serve 某个目录是太常见的功能了，所以默认支持它吧：
+
+```python
+    def serve_static(self,
+                     root_path: str,
+                     url_prefix: str = '/static',
+                     headers: Optional[dict] = None) -> None:
+        """示例：
+        app.serve_static('/path/to/dir')
+        
+        比如存在/path/to/dir/images/me.jpg，
+        用户则可以用以下URL访问：
+        example.com/static/images/me.jpg
+        """
+        self.add_rule(
+            url_prefix + '/<filename:path>',
+            'GET', lambda request, filename: FileResponse(
+                filename, root_path, headers, request))
+```
+
+最后，支持用标准库中的一个简单 server 来直接 run 我们的应用：
+
+```python
+    def run(self, host='127.0.0.1', port=9000):
+        """示例：
+        app.run()
+        app.run('0.0.0.0')
+        app.run(port=8888)
+        """
+        from wsgiref.simple_server import make_server
+
+        sys.stderr.write('Server running on http://{}:{}/\n'.format(host, port))
+        server = make_server(host, port, self)
+        server.serve_forever()
+```
+
+## 例子
+
+```python
+import os
+from random import random
+from web import (
+    MiniWeb,
+    Request,
+    Response,
+    JSONResponse,
+    HTTPError
+)
+
+app = MiniWeb()
+
+app.serve_static(os.path.dirname(__file__))
+
+
+@app.get('/')
+def index(req: Request):
+    return 'hello world'
+
+@app.get('/user/<name>')
+def index(req: Request, name: str):
+    return {'status': 'ok', 'message': f'Hello, {name}; your ip: {req.remote_addr}'}
+
+@app.error(404)
+def handle_404(req: Request, err: HTTPError):
+    resp = JSONResponse({'status': 'failed', 'message': 'page not found'})
+    resp.status_code = 404
+    return resp
+  
+
+app.run()
+```
+
+更多的例子可以去 [mini_web/examples.py](https://github.com/cymoo/mini_web/blob/main/examples.py) 查看。
+
+## 总结
+
+我们用了~600行实现了一个精简的 web 框架。它能够让你从整体上理解  web 的运作机制，几乎所有的框架都遵循着类似的处理流程，不论使用的是哪种编程语言。总体而言，它并不难，难点在于要关注很多细节，比如安全和性能优化，而这些我们并没有太多考虑。
+
+下一章会实现一个类似 Django 或 Flask 的模板引擎。
 
