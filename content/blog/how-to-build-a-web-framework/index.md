@@ -1134,11 +1134,17 @@ def index(req: Request):
 
 @app.get('/user/<name>')
 def index(req: Request, name: str):
-    return {'status': 'ok', 'message': f'Hello, {name}; your ip: {req.remote_addr}'}
+    return {
+      'status': 'ok',
+      'message': f'Hello, {name}; your ip: {req.remote_addr}'
+    }
 
 @app.error(404)
 def handle_404(req: Request, err: HTTPError):
-    resp = JSONResponse({'status': 'failed', 'message': 'page not found'})
+    resp = JSONResponse({
+      'status': 'failed',
+      'message': 'page not found'
+    })
     resp.status_code = 404
     return resp
   
