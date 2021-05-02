@@ -1133,7 +1133,7 @@ def index(req: Request):
     return 'hello world'
 
 @app.get('/user/<name>')
-def index(req: Request, name: str):
+def user(req: Request, name: str):
     return {
       'status': 'ok',
       'message': f'Hello, {name}; your ip: {req.remote_addr}'
