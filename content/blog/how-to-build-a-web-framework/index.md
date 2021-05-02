@@ -843,7 +843,102 @@ class FileWrapper:
 
 ###Router
 
-...
+路由，通常指的是数据包从出发地到目的地，如何选择一条合适的路径。而对 web 开发来说，路由指的是如何根据请求的信息，找到能处理该请求的函数。我们可以建立一个规则，即“路由表”，根据请求的 URL 和方法能唯一确定一个函数：
+
+```
+(/, GET) -> function A
+(/foo, POST) -> function B
+(/bar, GET) -> function C
+```
+
+很多时候，不同的 URL 需要对应同一个函数：
+
+```
+(/user/a, GET) -> function D
+(/user/b, GET) -> function D
+```
+
+为此，也需要能够在 URL 中添加变量：
+
+```
+(/user/<name>, GET) -> function D
+```
+
+我们支持三种类型的变量，即 `<var_name>`，`<var_name:int>`，和 `<var_name:path>`。
+
+```
+(/user/<name>, GET) -> function D
+(/page/<num:int>, GET) -> function E
+(/static/<filename:path>, GET) -> function F
+```
+
+`<var_name>` 接受任何不包含**斜杠**的字符串，`<var_name:int>` 接受正整数，`<var_name:path>` 类似第一种，但可以包含**斜杠**。你可以选择支持更多的类型，比如 `float`，`uuid` 等。
+
+下面是 `Router` 的实现：
+
+```python
+class Router:
+    """路由用于把请求匹配到一个函数。"""
+    
+    # patterns用于把URL转为正则表达式，比如：
+    # /page/<num:int>会被转为/page/(\d+)
+    patterns = [
+        (r'<\w+>', r'([\\w-]+)'),
+        (r'<\w+:\s*int>', r'(\\d+)'),
+        (r'<\w+:\s*path>', r'([\\w\\./-]+)'),
+    ]
+
+    def __init__(self) -> None:
+        self.rules = []
+
+    def add(self, rule: str, method: str, func: Callable) -> None:
+        for pat, repl in self.patterns:
+            rule = re.sub(pat, repl, rule)
+        rule = '^' + rule + '$'
+        self.rules.append([re.compile(rule), method, func])
+
+    def match(self, path: str, method: str) -> Tuple[Callable, tuple]:
+        path_matched = False
+        for rule, mtd, func in self.rules:
+            match = rule.match(path)
+            if match:
+                path_matched = True
+                if method == mtd:
+                    # 提取匹配到的URL参数，
+                    # 它们会按照顺序传给对应的函数
+                    args = match.groups()
+                    return func, args
+        # 如果路径匹配到了，但方法没匹配，
+        # 抛 405 error，即'method not allowed'。
+        if path_matched:
+            raise HTTPError(405)
+        else:
+            raise HTTPError(404)
+
+    def __str__(self) -> str:
+        return str(self.rules)
+
+    __repr__ = __str__
+```
+
+来做个简单的测试：
+
+```python
+>>> router = Router()
+>>> router.add('/', 'GET', lambda req: 'hello world')
+>>> router.add(
+... '/user/<id:int>/delete',
+... 'POST',
+... lambda req, id: f'delete user {id}'
+... )
+>>> func, args = router.match('/user/13/delete', 'POST')
+>>> func({}, *args)
+'delete user 13'
+```
+
+我们的 `Router` 很简单，如果你有兴趣，可以看看高级一些的实现，[bottle: a simple micro-framework](https://github.com/bottlepy/bottle)。
+
+或许你有个疑问，为啥不直接支持正则表达式，还要绕个圈子，例如把 `<xxx:int>` 转成 `\d+` 呢？主要原因在于，正则表达式想写好没那么简单，尤其是模式比较复杂时，它很容易出错；更重要的是，它还可能会导致拒绝服务：[Regular expression Denial of Service ](https://owasp.org/www-community/attacks/Regular_expression_Denial_of_Service_-_ReDoS)。我们可能会认为正则匹配的时间复杂度是 `O(n)`，`n` 是输入字符串的长度，很多场景下确实是这样。但，有些时候它的复杂度甚至会达到 `O(n^2)`。所以，不给选择有时反而是最好的选择。
 
 ###MiniWeb
 
