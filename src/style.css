@@ -265,3 +265,16 @@ pre[class*='language-'] {
 h1 code, h2 code, h3 code, h4 code, h5 code, h6 code {
   font-size: inherit;
 }
+
+/* Page Specific */
+.toc {
+  margin-top: 10px;
+  padding: 15px;
+  box-shadow: 0 0 5px #ddd;
+}
+.toc ul {
+  margin-top: 0;
+}
+.toc a {
+  color: var(--color);
+}

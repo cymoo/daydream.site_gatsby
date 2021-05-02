@@ -1,7 +1,7 @@
 import React from "react"
 import { Link, graphql } from "gatsby"
 
-import Bio from "../components/bio"
+// import Bio from "../components/bio"
 import Layout from "../components/layout"
 import SEO from "../components/seo"
 
@@ -15,7 +15,7 @@ const BlogIndex = ({ data, location }) => {
     return (
       <Layout location={location} title={siteTitle}>
         <SEO title="Home" />
-        <Bio />
+        {/*<Bio />*/}
         <p>空空如也</p>
       </Layout>
     )
@@ -24,7 +24,7 @@ const BlogIndex = ({ data, location }) => {
   return (
     <Layout location={location} title={siteTitle}>
       <SEO title="Home" />
-      <Bio />
+      {/*<Bio />*/}
       <ol style={{ marginLeft: 0, listStyle: `none` }}>
         {posts.map(post => {
           const title = post.frontmatter.title || post.fields.slug

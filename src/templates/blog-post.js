@@ -33,6 +33,13 @@ const BlogPostTemplate = ({ data, pageContext, location }) => {
             </p>
           )}
         </header>
+        {post.frontmatter.toc && (
+          <div
+            className="toc"
+            dangerouslySetInnerHTML={{ __html: post.tableOfContents }}
+            itemProp="articleBody"
+          />
+        )}
         <div
           dangerouslySetInnerHTML={{ __html: post.html }}
           itemProp="articleBody"
@@ -90,10 +97,12 @@ export const pageQuery = graphql`
       id
       excerpt(pruneLength: 160)
       html
+      tableOfContents(maxDepth: 3)
       frontmatter {
         title
         date(formatString: "YYYY-MM-DD")
         description
+        toc
         coverImage {
           name
           childImageSharp {

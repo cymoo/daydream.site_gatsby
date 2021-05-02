@@ -3,6 +3,7 @@ title: 从零实现 web 框架
 visible: true
 date: 2021-04-16
 description: 极简框架，与 Flask 有类似的 API
+toc: true
 ---
 
 本篇我们会来实现一个 web 框架，如果你熟悉 Python 中的 Django 或 Flask，就会觉得它很亲切，完整代码在这儿  [Github](https://github.com/cymoo/mini_web)。

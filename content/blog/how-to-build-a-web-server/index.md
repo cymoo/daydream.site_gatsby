@@ -3,6 +3,7 @@ title: 从零实现 web server
 visible: true
 date: 2021-04-07
 description: 极简多线程 server，实现了 WSGI 协议
+toc: true
 ---
 
 作为本系列的开山之作，我们来实现一个简单的 web server，它应该也是本系列最简单的一篇，去除空行后，代码行数不及100，但它能与 Python 中流行的框架，如 Flask、Django 等一起工作（或许吧）。如果你没有耐心，可以去 [github](https://github.com/cymoo/mini_server) 查看。
@@ -331,7 +332,7 @@ server.set_application(app)
 server.run_forever()
 ```
 
-## 番外：数据是如何发送与接收的？
+## 番外：数据是如何发送与接收的
 
 1. 数据是怎么发送的？
 
