@@ -130,37 +130,39 @@ def index(req):
 
 这种方法首先将模板转为符合 Python 语法规则的字符串，比如上面提到的模板：
 
-```
-<h1>Hi, {{ user }}.</h1>
-<p>Fruit:</p>
-<ul>
-  {% for item in fruit %}
-  <li>{{ item }}</li>
-  {% end %}
-</ul>
+```python
+>>> text = """
+... <h1>Hi, {{ user }}.</h1>
+... <p>Fruit:</p>
+... <ul>
+...   {% for item in fruit %}
+...   <li>{{ item }}</li>
+...   {% end %}
+... </ul>
+... """
 ```
 
 我们解析这个模板，把它翻译成以下的字符串（忽略空格和换行符）：
 
 ```python
-code_text = """
-def render():
-    output = []
-    output.extend(['<h1>Hi, ', str(user), '.</h1><p>Fruit:</p><ul>'])
-    for item in fruit:
-        output.extend(['<li>', str(item), '</li>'])
-    output.extend(['</ul>'])
-    return "".join(output)
-"""
+>>> code_text = """
+... def render():
+...     output = []
+...     output.extend(['<h1>Hi, ', str(user), '.</h1><p>Fruit:</p><ul>'])
+...     for item in fruit:
+...         output.extend(['<li>', str(item), '</li>'])
+...     output.extend(['</ul>'])
+...     return "".join(output)
+... """
 ```
 
 随后调用 `compile` 和 `exec` ，即可得到能够直接运行的函数 `render`。如果对它们感到陌生，这儿有个不错的文章：[What's the difference between eval, exec, and compile?](https://stackoverflow.com/questions/2220699/whats-the-difference-between-eval-exec-and-compile)
 
 ```python
-code = compile(code_text, '<string>', 'exec')
-namespace = {'user': 'Neo', 'fruit': ['Apple', 'Orange', 'Mango']}
-exec(code, namespace)
-render = namespace['render']
+>>> code = compile(code_text, '<string>', 'exec')
+>>> namespace = {'user': 'Neo', 'fruit': ['Apple', 'Orange', 'Mango']}
+>>> exec(code, namespace)
+>>> render = namespace['render']
 ```
 
 调用 `render` 函数，就得到生成的 HTML：
@@ -178,7 +180,7 @@ render = namespace['render']
 
 上面的先 `compile`，然后 `exec` 的操作可以合并成一步，即 `exec(code_text, namespace)`。不过，通常应该把 `compile` 后的 `code` 对象缓存起来，以提升性能。
 
-下面开始我们的实现。第一步定义一个帮助类，很简单，它辅助我们构建 Python 代码，主要是管理缩进和添加代码行。
+下面开始我们的实现。首先定义一个帮助类，很简单，它辅助我们构建 Python 代码，主要是管理缩进和添加代码行。
 
 ### CodeWriter
 
@@ -219,9 +221,9 @@ def sum(x, y):
     return x + y
 ```
 
-
-
 ### 生成 Python 函数
+
+接下来，解析模板，生成符合 Python 语法规则的代码。我们使用正则表达式帮我们识别并分割特殊的标记，即 `{{ }}`、`{% %}` 和 `{# #}`。
 
 ```python
 import re
@@ -229,31 +231,39 @@ import re
 FRAGMENT_PATTERN = re.compile(r'({{.*?}}|{%.*?%}|{#.*?#})')
 ```
 
+例如，使用这个正则对以上的模板做分割：
+
+```python
+# 输出的结果忽略了换行符和多余的空格
+>>> FRAGMENT_PATTERN.split(text)
+['<h1>Hi, ',                 # 静态文本
+ '{{ user }}',               # 表达式
+ '.</h1><p>Fruit:</p><ul>',  # 静态文本
+ '{% for item in fruit %}',  # for语句
+ '<li>',                     # 静态文本
+ '{{ item }}',               # 表达式
+ '</li>',                    # 静态文本
+ '{% end %}',                # 结束标记
+ '</ul>']                    # 静态文本
+```
+
+开始解析，并生成 Python 代码。
+
 ```python
 class Template:
-    global_ctx = {}
-
     def __init__(self, **options) -> None:
+        # 模板引擎的常见设置，
+        # 比如模板文件的根路径，是否需要转义HTML等，
+        # 不过这里没用到它。
         self.options = options
-
-    @classmethod
-    def update_global_ctx(cls, ctx: dict) -> None:
-        cls.global_ctx.update(ctx)
-
-    def render(self, text: str, **ctx):
-        # 为了提高性能，模板仅应被编译一次，然后被缓存起来
-        code = compile(str(self.parse(text)), '<string>', 'exec')
-
-        namespace = self.global_ctx.copy()
-        namespace.update(ctx)
-        namespace = {key: DotSon(value) for key, value in namespace.items()}
-
-        exec(code, namespace)
-        return namespace['render']()
 
     @staticmethod
     def parse(text: str) -> 'CodeWriter':
         code = CodeWriter()
+        
+        # 在解析的过程中，首先把字符串添加到buffer中，
+        # 每当遇到缩进点，即if或for等时，
+        # 把buffer的内容写回到code中。
         buffer = []
 
         def flush_buffer():
@@ -266,15 +276,21 @@ class Template:
         code.add_line('output = []')
 
         for fragment in FRAGMENT_PATTERN.split(text):
+            # 如果是{# text #}，忽略之。
             if fragment.startswith('{#'):
                 continue
+            # 如果是{{ expr }}，将str(expr)添加到buffer中，
+            # expr的结果可以是任意类型，所以需要转为字符串。
             elif fragment.startswith('{{'):
                 expr = fragment[2:-2].strip()
                 buffer.append(f'str({expr})')
             elif fragment.startswith('{%'):
+                # 达到缩进点，需要缓冲buffer。
                 flush_buffer()
-
+                
+                # statement形如if expr 或 for item in expr等。
                 statement = fragment[2:-2].strip().strip(':')
+                # instruction为if, for, end等。
                 instruction = statement.split(maxsplit=1)[0]
 
                 if instruction == 'if':
@@ -287,11 +303,15 @@ class Template:
                 elif instruction == 'for':
                     code.add_line(statement + ':')
                     code.indent()
+                # 以end开始的标记表示if或for块的结束，比如：
+                # {% end %}，{% endif %}，{% endfor %}。
+                # 这里为了代码简洁，没有检查标记是否配对。
                 elif instruction.startswith('end'):
                     code.dedent()
                 else:
                     raise SyntaxError(f'cannot understand tag: {fragment}')
             else:
+              	# 正则表达式分割时，会产生空字符串，同时也没必要添加连续的空白字符
                 if fragment.strip():
                     buffer.append(repr(fragment))
 
@@ -302,7 +322,158 @@ class Template:
         return code
 ```
 
+我们使用之前的模板来动手测试一下：
 
+```python
+>>> code_text = Template.parse(text)
+>>> str(code_text)
+def render():
+    output = []
+    output.extend(['<h1>Hi, ', str(user), '.</h1><p>Fruit:</p><ul>'])
+    for item in fruit:
+        output.extend(['<li>', str(item), '</li>'])
+    output.extend(['</ul>'])
+    return "".join(output)
+```
+
+### Render
+
+完成以上的步骤，基本就搞定了，剩下的就是前文提到的对生成的代码执行 `compile` 和 `exec` 。此外，模板引擎一般均会内置一些常见的函数或变量，可以类比 Python 中的 `__builtins__` 中的东东，如 `sum`、`len`等，你不需要 import 或自定定义就可以使用。
+
+```python
+    # 模板引擎内置的公共的函数或变量，如escape_html。
+    global_ctx = {}
+    
+    @classmethod
+    def update_global_ctx(cls, ctx: dict) -> None:
+        cls.global_ctx.update(ctx)
+
+    def render(self, text: str, **ctx):
+        # 注意：我们应把该code缓存在某个地方，以免重复compile。
+        code = compile(str(self.parse(text)), '<string>', 'exec')
+        # 将用户的context与公共的做合并
+        namespace = self.global_ctx.copy()
+        namespace.update(ctx)
+        
+        # DotSon是一个代理类，即对象可以使用dot nonation：
+        # my_dict['a'] -> my_dict.a
+        namespace = {key: DotSon(value) for key, value in namespace.items()}
+
+        exec(code, namespace)
+        return namespace['render']()
+```
+
+模板中大量的使用 `obj['a']['b']` 不甚友好，所以我们定义一个类，让我们可以这样 `obj.a.b`。给它起个闪亮的名字吧：DotSon，dot for JSON-like object。
+
+```python
+from collections import abc
+from keyword import iskeyword
+
+
+class DotSon(abc.Mapping):
+    """ `DotSon`是一个特殊的类字典对象，支持dot notation。
+    当获取深度嵌套的item时会有性能损失。
+    >>> d = DotSon({'name': 'foo', 'hobbits': [{'name': 'bar'}]})
+    >>> d.name
+    'foo'
+    >>> d.hobbits[0].name
+    'bar'
+    >>> type(d.hobbits[0]) == DotSon
+    True
+    """
+
+    def __new__(cls, obj):
+        if isinstance(obj, abc.Mapping):
+            return super().__new__(cls)
+        elif isinstance(obj, abc.MutableSequence):
+            return [cls(item) for item in obj]
+        else:
+            return obj
+
+    def __init__(self, mapping):
+        # create a shallow copy for security
+        self._data = {}
+        for key, value in mapping.items():
+            if not key.isidentifier():
+                raise AttributeError("invalid identifier: {!r}".format(key))
+            if iskeyword(key):
+                key += '_'
+            self._data[key] = value
+
+    def __getattr__(self, name: str):
+        if hasattr(self._data, name):
+            return getattr(self._data, name)
+        try:
+            return DotSon(self._data[name])
+        except KeyError:
+            raise AttributeError('{!r} has no attribute {!r}'.format(self, name))
+
+    def __getitem__(self, item):
+        return self._data[item]
+
+    def keys(self):
+        return self._data.keys()
+
+    def values(self):
+        return self._data.values()
+
+    def items(self):
+        return self._data.items()
+
+    def get(self, key, default=None):
+        return self._data.get(key, default)
+
+    def __len__(self):
+        return len(self._data)
+
+    def __iter__(self):
+        return iter(self._data)
+
+    def __str__(self):
+        return str(self._data)
+```
+
+至此，这个简单的模板引擎就完成了，有效代码不及100行。然后它很灵活，你可以在 `{{ }}` 中写任何合法的 Python 表达式，比如 `{{ __import__('os').listdir() }}`，所以我们就没有必要再实现管道语法等。
+
+最后，再来个小例子：
+
+```python
+>>> text = """
+... <h1>Hi, {% if user %}{{ user }}{% else %}traveler{% end %}</h1>
+... <p>Fruit:</p>
+... <ul>
+...   {% for item in fruit %}
+...   <li>{{ item }}</li>
+...   {% end %}
+... </ul>
+... """
+>>> template = Template()
+>>> template.render(
+...     text,
+...     user='Neo',
+...     fruit=['apple', 'banana']
+... )
+<h1>Hi, Neo</h1>
+<p>Fruit:</p>
+<ul>
+  <li>apple</li>
+  <li>banana</li>
+</ul>
+```
+
+### 如何改进
+
+1. 安全
+
+   ` __import__('shutil').rmtree('~')`
+
+2. 性能
+
+   ...
+
+3. 错误信息
+
+   ...
 
 ## 方法2：编译至语法树
 
@@ -314,7 +485,7 @@ class Template:
 
 ### 实现 Template 类
 
-## 如何改进
+### 如何改进
 
 ## 示例
 
