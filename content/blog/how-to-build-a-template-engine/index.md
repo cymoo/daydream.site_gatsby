@@ -10,15 +10,15 @@ toc: true
 
 ## 背景
 
-在上一篇我们实现了一个 web 框架，但仍有个问题有待解决，即如何方便的生成 HTML 响应。比如对于这两个变量 `user = 'Rina'`，`fruit = ['apple', 'orange', 'mango']`，我们想生成以下的 HTML：
+在上一篇我们实现了一个 web 框架，但仍有个问题有待解决，即如何方便的生成 HTML 响应。比如对于这两个变量 `user = 'Neo'`，`fruit = ['apple', 'orange', 'mango']`，我们想生成以下的 HTML：
 
 ```html
-<h1>Hi, Rina.</h1>
-<p>Do you like:</p>
+<h1>Hi, Neo.</h1>
+<p>Fruit:</p>
 <ul>
-  <li>apple</li>
-  <li>orange</li>
-  <li>mango</li>
+  <li>Apple</li>
+  <li>Orange</li>
+  <li>Mango</li>
 </ul>
 ```
 
@@ -27,11 +27,11 @@ toc: true
 ```python
 @app.get('/')
 def index(req):
-    user = 'Rina'
-    fruit = ['apple', 'orange', 'mango']
+    user = 'Neo'
+    fruit = ['Apple', 'Orange', 'Mango']
     
     output = '<h1>Hi, {}.</h1>'.format(user)
-    output += '<p>Do you like:</p><ul>'
+    output += '<p>Fruit:</p><ul>'
     
     for item in fruit:
         output += '<li>{}</li>'.format(item)
@@ -47,7 +47,7 @@ def index(req):
 
 ```html
 <h1>Hi, {{ user }}.</h1>
-<p>Do you like:</p>
+<p>Fruit:</p>
 <ul>
   {% for item in fruit %}
   <li>{{ item }}</li>
@@ -62,8 +62,8 @@ def index(req):
 def index(req):
     return render(
         'template-file.html',
-        user='Rina',
-        fruit = ['apple', 'orange', 'mango']
+        user='Neo',
+        fruit = ['Apple', 'Orange', 'Mango']
     )
 ```
 
@@ -78,15 +78,15 @@ def index(req):
 
 ## 模板语法
 
-本文的模板引擎支持以下模板语法，另一些常见的功能，诸如 `extend`、`include` 和 `try` 等在本文实现的基础上也很好搞定，鉴于一贯的能省则省的精神，暂忽略之。
+本文的模板引擎支持以下模板语法，另一些常见的功能，诸如 `extend`、`include` 和 `try` 等在本文实现的基础上也很好搞定，鉴于篇幅和简洁考量，本文暂忽略之。
 
 1. 表达式：`{{ expr }}`
 
    ```
    {{ user }}
    
-   # “点”访问，对象属性或item的获取可以使用"."
-   # 例如user={'name': 'foo', 'addr': ['Shanghai', 'Beijing']}
+   # “点”访问语法，对象属性或item的获取可以使用"."
+   # 例如user={'name': 'neo', 'addr': ['Shanghai', 'Beijing']}
    {{ user.name }}
    {{ user.addr.1 }}
    
@@ -126,6 +126,60 @@ def index(req):
 
 ## 方法1：编译至 Python
 
+这种方法比较直观 ，但它要求编程语言具有动态执行代码的能力，比如在 Python 中，函数 `exec` 等能够将字符串解析为一系列 Python 语句并执行。常见的“动态”语言均具备这种能力，比如 JavaScript、Ruby 和 Scheme 等均有的 `eval` 函数。
+
+这种方法首先将模板转为符合 Python 语法规则的字符串，比如上面提到的模板：
+
+```
+<h1>Hi, {{ user }}.</h1>
+<p>Fruit:</p>
+<ul>
+  {% for item in fruit %}
+  <li>{{ item }}</li>
+  {% end %}
+</ul>
+```
+
+我们解析这个模板，把它翻译成以下的字符串（忽略空格和换行符）：
+
+```python
+code_text = """
+def render():
+    output = []
+    output.extend(['<h1>Hi, ', str(user), '.</h1><p>Fruit:</p><ul>'])
+    for item in fruit:
+        output.extend(['<li>', str(item), '</li>'])
+    output.extend(['</ul>'])
+    return "".join(output)
+"""
+```
+
+随后调用 `compile` 和 `exec` ，即可得到能够直接运行的函数 `render`。如果对它们感到陌生，这儿有个不错的文章：[What's the difference between eval, exec, and compile?](https://stackoverflow.com/questions/2220699/whats-the-difference-between-eval-exec-and-compile)
+
+```python
+code = compile(code_text, '<string>', 'exec')
+namespace = {'user': 'Neo', 'fruit': ['Apple', 'Orange', 'Mango']}
+exec(code, namespace)
+render = namespace['render']
+```
+
+调用 `render` 函数，就得到生成的 HTML：
+
+```python
+>>> render()
+<h1>Hi, Neo.</h1>
+<p>Fruit:</p>
+<ul>
+    <li>Apple</li>
+    <li>Orange</li>
+    <li>Mango</li>
+</ul>
+```
+
+上面的先 `compile`，然后 `exec` 的操作可以合并成一步，即 `exec(code_text, namespace)`。不过，通常应该把 `compile` 后的 `code` 对象缓存起来，以提升性能。
+
+下面开始我们的实现。第一步定义一个帮助类，很简单，它辅助我们构建 Python 代码，主要是管理缩进和添加代码行。
+
 ### CodeWriter
 
 ```python
@@ -152,6 +206,17 @@ class CodeWriter:
 
     def __str__(self) -> str:
         return ''.join(str(c) for c in self.code)
+```
+
+比如我们用它来“写”代码：
+
+```python
+>>> writer = CodeWriter()
+>>> writer.add_line('def sum(x, y):').indent()
+>>> writer.add_line('return x + y').dedent()
+>>> str(writer)
+def sum(x, y):
+    return x + y
 ```
 
 
