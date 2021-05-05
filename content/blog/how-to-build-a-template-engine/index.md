@@ -433,7 +433,7 @@ class DotSon(abc.Mapping):
         return str(self._data)
 ```
 
-至此，这个简单的模板引擎就完成了，有效代码不及100行。然而它很灵活，你可以在 `{{ }}` 中写任何合法的 Python 表达式，比如 `{{ __import__('os').listdir() }}`，所以我们就没有必要再实现管道语法等。
+至此，这个简单的模板引擎就完成了，有效代码不及100行。然而它很灵活，你可以在 `{{ }}` 中写任何合法的 Python 表达式，比如 `{{ 'foo' if True else 'bar' }}`、`{{ __import__('os').listdir() }}` 等，所以我们就没有太大必要再实现管道语法等。
 
 最后，再来个小例子：
 
@@ -465,7 +465,11 @@ class DotSon(abc.Mapping):
 
 1. 安全
 
-   ` __import__('shutil').rmtree('~')`
+   这是所有提供了类似 `eval` 功能的语言均会面临的问题，你没法确保字符串或用户输入中不包含恶意代码。假如模板中存在这么个恶毒的东西 `{{ __import__('shutil').rmtree('/') }}`，而且 server 又被很粗心的以 root 运行，那么首个用户访问相应的页面之时，便是核爆至日。可参考两篇不错的文章：[Eval really is dangerous](https://nedbatchelder.com/blog/201206/eval_really_is_dangerous.html)，[Be careful with exec and eval in Python](https://lucumr.pocoo.org/2011/2/1/exec-in-python/)。
+
+   那么怎么办呢？完全不用 `eval` 或 `exec` 了吗？No，模板引擎是使用它们的少数合理的场景。通过某些方法可以降低或消除它们的危险性，比如使用白名单或黑名单，严格限制或过滤表达式中的函数。例如：`__import__`、`delattr`、`setattr`、`input`、`globals` 和 `locals` 等绝不该出现。你可以使用正则表达式来做个简单的过滤，或是使用标准库中 `ast` 模块来遍历并识别危险的 nodes。这儿有个参考：[restricted "safe" eval]([Restricted "safe" eval " Python recipes " ActiveState Code](https://code.activestate.com/recipes/496746-restricted-safe-/))。
+
+   如果用好了 `eval` 或 `exec` 等，你的工具箱里便多了一把瑞士军刀。
 
 2. 性能
 
