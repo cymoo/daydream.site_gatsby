@@ -463,21 +463,23 @@ class DotSon(abc.Mapping):
 
 ### 如何改进
 
+上述的实现很简单，可以改进的地方还有很多。比如缺少异常处理，没有检查 `{% if ... %}` 或  `{% for ... %}` 是否是合法的 Python 语句，或是否有多余或遗漏的 `{% end %}`；也没有提供移除冗余换行符或空格的选择。但最重要的是以下3点：
+
 1. 安全
 
    这是所有提供了类似 `eval` 功能的语言均会面临的问题，你没法确保字符串或用户输入中不包含恶意代码。假如模板中存在这么个恶毒的东西 `{{ __import__('shutil').rmtree('/') }}`，而且 server 又被很粗心的以 root 运行，那么首个用户访问相应的页面之时，便是核爆至日。可参考两篇不错的文章：[Eval really is dangerous](https://nedbatchelder.com/blog/201206/eval_really_is_dangerous.html)，[Be careful with exec and eval in Python](https://lucumr.pocoo.org/2011/2/1/exec-in-python/)。
 
    那么怎么办呢？完全不用 `eval` 或 `exec` 了吗？No，模板引擎是使用它们的少数合理的场景。通过某些方法可以降低或消除它们的危险性，比如使用白名单或黑名单，严格限制或过滤表达式中的函数。例如：`__import__`、`delattr`、`setattr`、`input`、`globals` 和 `locals` 等绝不该出现。你可以使用正则表达式来做个简单的过滤，或是使用标准库中 `ast` 模块来遍历并识别危险的 nodes。这儿有个参考：[restricted "safe" eval](https://code.activestate.com/recipes/496746-restricted-safe-/)。
 
-   如果用好了 `eval` 或 `exec` 等，你的工具箱里便多了一把瑞士军刀。
+   合理的使用 `eval` 或 `exec` 等，你的工具箱里便多了一把瑞士军刀。
 
 2. 性能
 
-   ...
+   如果某个模板会被渲染多次，我们应该把 `compile` 后得到的 `code` 对象缓存起来，因为 `compile` 是一个相对耗时的操作。甚至还能做到更好，我们可以把模板的 `context` 在 `parse` 过程中展开，然后把调用 `exec` 后生成的 `render` 函数缓存起来；之后的渲染只需调用 `render`，不再需要 `compile` 和 `exec` ，性能无疑会很好。具体的实现可以参考：[500 Lines or Less: A Template Engine ](http://aosabook.org/en/500L/a-template-engine.html)，这篇文章里还介绍了一些 micro-optimization 的技巧，如果对性能有很高的追求，也可以尝试。
 
 3. 错误信息
 
-   ...
+   如果我们的模板中出现了错误，比如标记没有正确闭合，或是某个变量没找到，那么异常是从解析模板得到的 `render` 函数里抛出的，换而言之，错误无法被直接定位到模板中的位置。这会对 debug 造成一定的麻烦，那么该怎么解决呢？我们应该在解析模板的过程中建立从模板字符串到代码的位置信息的映射关系，当 `render` 函数中抛出异常时，捕获并获取位置信息，然后再还原到原始模板中的位置。实现会复杂一些，具体可以参考 Django 的模板引擎。
 
 ## 方法2：编译至语法树
 
