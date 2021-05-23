@@ -1,5 +1,5 @@
 ---
-title: 从零实现 web 框架
+title: Web 框架
 visible: true
 date: 2021-05-01
 description: 极简框架，与 Flask 有类似的 API

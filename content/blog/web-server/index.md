@@ -1,5 +1,5 @@
 ---
-title: 从零实现 web server
+title: Web Server
 visible: true
 date: 2021-04-07
 description: 极简多线程 server，实现了 WSGI 协议
