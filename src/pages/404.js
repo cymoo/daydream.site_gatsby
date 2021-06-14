@@ -1,5 +1,4 @@
 import React from "react"
-import { css } from "@emotion/css"
 import { graphql, Link } from "gatsby"
 
 import Layout from "../components/layout"
@@ -9,32 +8,24 @@ const NotFoundPage = ({ data, location }) => {
   const siteTitle = data.site.siteMetadata.title
 
   return (
-    <Layout
-      location={location}
-      title={siteTitle}
-      className={css`
-        & header {
-          display: none;
-        }
-      `}
-    >
+    <Layout location={location} title={siteTitle} includeHeader={false}>
       <SEO title="404: Not Found" />
       <div
-        className={css`
-          display: flex;
-          justify-content: center;
-        `}
+        style={{
+          display: "flex",
+          justifyContent: "center",
+        }}
       >
         <div
-          className={css`
-            margin-top: 100px;
-            display: inline-flex;
-            flex-direction: column;
-          `}
+          style={{
+            marginTop: 100,
+            display: "inline-flex",
+            flexDirection: "column",
+          }}
         >
-          <h1 style={{ fontSize: "2rem" }}>404</h1>
-          <p>你想访问的页面已被删除，或不存在</p>
-          <p>
+          <h1 style={{ fontSize: "2.3rem" }}>404</h1>
+          <p style={{ fontSize: "1.3rem" }}>你想访问的页面已被删除，或不存在</p>
+          <p style={{ fontSize: "1.1rem" }}>
             <Link to="/">回到首页</Link>
           </p>
         </div>

@@ -1,7 +1,13 @@
 import React from "react"
 import { Link } from "gatsby"
 
-const Layout = ({ location, title, children, ...rest }) => {
+const Layout = ({
+  location,
+  title,
+  children,
+  includeHeader = true,
+  ...rest
+}) => {
   const isRootPath = location.pathname === "/"
   let header
 
@@ -62,7 +68,7 @@ const Layout = ({ location, title, children, ...rest }) => {
           paddingBottom: 45,
         }}
       >
-        {header}
+        {includeHeader && header}
         <main>{children}</main>
       </div>
     </div>
