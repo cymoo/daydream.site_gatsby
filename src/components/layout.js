@@ -1,9 +1,8 @@
 import React from "react"
 import { Link } from "gatsby"
 
-const Layout = ({ location, title, children }) => {
-  const rootPath = `${__PATH_PREFIX__}/`
-  const isRootPath = location.pathname === rootPath
+const Layout = ({ location, title, children, ...rest }) => {
+  const isRootPath = location.pathname === "/"
   let header
 
   if (isRootPath) {
@@ -50,6 +49,7 @@ const Layout = ({ location, title, children }) => {
         minHeight: "100vh",
         transition: "color 0.2s ease-out, background 0.2s ease-out",
       }}
+      {...rest}
     >
       <div
         style={{
