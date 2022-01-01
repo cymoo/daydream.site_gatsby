@@ -35,6 +35,16 @@ const Layout = ({
           >
             关于我
           </Link>
+          <Link
+            to="/rss.xml"
+            style={{
+              color: "var(--color)",
+              textDecoration: "none",
+              marginLeft: 15,
+            }}
+          >
+            RSS
+          </Link>
         </div>
       </header>
     )
