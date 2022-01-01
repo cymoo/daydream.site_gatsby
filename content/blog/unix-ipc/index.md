@@ -2,7 +2,7 @@
 title: Unix IPC
 visible: true
 date: 2021-09-18
-description: 透过每一个人共同的痛苦，我们得以彼此连接，进程之间亦是如此。
+description: 透过每一个人共同的痛苦，我们得以彼此连接，进程之间亦是如此
 toc: true
 ---
 
