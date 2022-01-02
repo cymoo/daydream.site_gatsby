@@ -24,6 +24,13 @@ module.exports = {
             }
           }
         `,
+        setup: options => ({
+          ...options,
+          custom_namespaces: {
+            itunes: "https://www.itunes.com/dtds/podcast-1.0.dtd",
+          },
+          custom_elements: [{ "itunes:author": "Cymoo" }],
+        }),
         feeds: [
           {
             serialize: ({ query: { site, allMarkdownRemark } }) => {
@@ -33,7 +40,7 @@ module.exports = {
                   date: edge.node.frontmatter.date,
                   url: site.siteMetadata.siteUrl + edge.node.fields.slug,
                   guid: site.siteMetadata.siteUrl + edge.node.fields.slug,
-                  // custom_elements: [{ "content:encoded": edge.node.html }],
+                  custom_elements: [{ "content:encoded": edge.node.html }],
                 })
               })
             },
