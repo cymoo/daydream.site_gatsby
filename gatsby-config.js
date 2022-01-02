@@ -24,13 +24,6 @@ module.exports = {
             }
           }
         `,
-        setup: options => ({
-          ...options,
-          custom_namespaces: {
-            itunes: "https://www.itunes.com/dtds/podcast-1.0.dtd",
-          },
-          custom_elements: [{ "itunes:author": "Cymoo" }],
-        }),
         feeds: [
           {
             serialize: ({ query: { site, allMarkdownRemark } }) => {
@@ -73,6 +66,7 @@ module.exports = {
             query: `
               {
                 allMarkdownRemark(
+                  filter: { frontmatter: { visible: { ne: false } } },
                   sort: { order: DESC, fields: [frontmatter___date] },
                 ) {
                   edges {
