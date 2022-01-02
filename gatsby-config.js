@@ -34,20 +34,40 @@ module.exports = {
         feeds: [
           {
             serialize: ({ query: { site, allMarkdownRemark } }) => {
+              const {
+                siteMetadata: { siteUrl },
+              } = site
               return allMarkdownRemark.edges.map(edge => {
-                return Object.assign({}, edge.node.frontmatter, {
-                  date: edge.node.frontmatter.date,
-                  url: site.siteMetadata.siteUrl + edge.node.fields.slug,
-                  guid: site.siteMetadata.siteUrl + edge.node.fields.slug,
-                  custom_elements: [
-                    {
-                      "content:encoded": edge.node.html.replace(
-                        /(?<="|\s)\/static\//g,
-                        `${site.siteMetadata.siteUrl}\/static\/`
-                      ),
+                const {
+                  node: {
+                    frontmatter: { title, date, coverImage, description },
+                    // excerpt,
+                    fields: { slug },
+                    html,
+                  },
+                } = edge
+
+                return Object.assign(
+                  {},
+                  {
+                    title,
+                    date,
+                    description,
+                    url: siteUrl + slug,
+                    guid: siteUrl + slug,
+                    enclosure: coverImage && {
+                      url: siteUrl + coverImage.publicURL,
                     },
-                  ],
-                })
+                    custom_elements: [
+                      {
+                        "content:encoded": html.replace(
+                          /(?<="|\s)\/static\//g,
+                          `${siteUrl}\/static\/`
+                        ),
+                      },
+                    ],
+                  }
+                )
               })
             },
             query: `
@@ -57,13 +77,16 @@ module.exports = {
                 ) {
                   edges {
                     node {
-                      excerpt
+                      excerpt(pruneLength: 130)
                       html
                       fields { slug }
                       frontmatter {
                         title
                         date(formatString: "YYYY-MM-DD")
                         description
+                        coverImage {
+                          publicURL
+                        }
                         visible
                       }
                     }
