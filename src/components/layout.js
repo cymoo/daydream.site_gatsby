@@ -8,7 +8,7 @@ const Layout = ({
   includeHeader = true,
   ...rest
 }) => {
-  const isRootPath = location.pathname === "/"
+  const isRootPath = location?.pathname === "/"
   let header
 
   if (isRootPath) {

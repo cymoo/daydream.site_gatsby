@@ -27,6 +27,7 @@
     "react-helmet": "^6.1.0"
   },
   "devDependencies": {
+    "howler": "^2.2.3",
     "prettier": "2.5.1"
   },
   "keywords": [
