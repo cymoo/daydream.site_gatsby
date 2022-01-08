@@ -28,7 +28,8 @@
   },
   "devDependencies": {
     "howler": "^2.2.3",
-    "prettier": "2.5.1"
+    "prettier": "2.5.1",
+    "rc-slider": "^9.7.5"
   },
   "keywords": [
     "daydream"
@@ -40,7 +41,7 @@
   },
   "scripts": {
     "build": "gatsby build",
-    "develop": "gatsby develop",
+    "develop": "gatsby develop --host='0.0.0.0'",
     "format": "prettier --write \"**/*.{js,jsx,ts,tsx,json,md}\"",
     "start": "npm run develop",
     "serve": "gatsby serve",
