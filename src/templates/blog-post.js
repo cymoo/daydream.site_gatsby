@@ -4,10 +4,12 @@ import Img from "gatsby-image"
 
 import Layout from "../components/layout"
 import SEO from "../components/seo"
+import AudioPlayer from "../components/audioplayer"
 
 const BlogPostTemplate = ({ data, pageContext, location }) => {
   const post = data.markdownRemark
   const img = post.frontmatter.coverImage?.childImageSharp?.fluid
+  const sound = post.frontmatter.sound
   const siteTitle = data.site.siteMetadata.title
   const { previous, next } = pageContext
 
@@ -33,6 +35,7 @@ const BlogPostTemplate = ({ data, pageContext, location }) => {
             </p>
           )}
         </header>
+        {sound && <AudioPlayer src={sound} style={{ marginTop: 30 }} />}
         {post.frontmatter.toc && (
           <div
             className="toc"
@@ -103,6 +106,7 @@ export const pageQuery = graphql`
         date(formatString: "YYYY-MM-DD")
         description
         toc
+        sound
         coverImage {
           name
           childImageSharp {

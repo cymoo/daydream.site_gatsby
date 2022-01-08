@@ -2,6 +2,7 @@
 title: 伟大的厌世者
 date: "2015-05-03"
 description: 人类从我学到为数不多的事，却永难忘怀
+sound: /sounds/demo.mp3
 visible: true
 
 ---
