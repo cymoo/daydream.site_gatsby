@@ -13,15 +13,18 @@ REPO_DIR = '/var/www/repo/daydream.site'
 USER = 'jie'
 
 
-def build_site(local=False):
+def build_site(gitpull=True, local=False):
     conn = Connection(host=HOST, user=USER)
     if local:
         exec_cmd = conn.local
     else:
         exec_cmd = conn.run
 
-    # BUG: when running locally, PATH is not set properly.
-    exec_cmd(f'cd {REPO_DIR} && git pull && export PATH=/usr/local/node/bin:$PATH && npm install && npm run build')
+    if gitpull:
+        exec_cmd(f'cd {REPO_DIR} && git pull')
+
+    # XXX: when running locally, PATH is not set properly.
+    exec_cmd(f'cd {REPO_DIR} && export PATH=/usr/local/node/bin:$PATH && npm install && npm run build')
     backup(exec_cmd)
     exec_cmd(f'cp -r {REPO_DIR}/public {SITE_DIR}')
 
@@ -42,7 +45,10 @@ def backup(exec_cmd):
 
 @task
 def build(ctx):
-    build_site()
+    if os.environ.get('gitpull') in ('0', 'false'):
+        build_site(gitpull=False)
+    else:
+        build_site(gitpull=True)
 
 
 def test(host):
