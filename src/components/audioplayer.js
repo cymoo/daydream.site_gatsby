@@ -37,7 +37,7 @@ const ControlButton = ({ onClick, playing, style }) => {
   )
 }
 
-const AudioPlayer = ({ src, style }) => {
+const AudioPlayer = ({ src, style, onAfterChange }) => {
   const [loading, setLoading] = useState(true)
   const [playing, setPlaying] = useState(false)
   const [progress, setProgress] = useState(0)
@@ -148,6 +148,7 @@ const AudioPlayer = ({ src, style }) => {
           if (playing) {
             sound.play()
           }
+          onAfterChange && onAfterChange(value)
         }}
         railStyle={{ backgroundColor: "rgb(72,72,72)", height: 3 }}
         handleStyle={{
