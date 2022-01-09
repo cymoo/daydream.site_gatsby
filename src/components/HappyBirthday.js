@@ -186,12 +186,15 @@ const HappyBirthday = ({ message, style }) => {
       <h1
         style={{
           position: "absolute",
+          display: "flex",
+          justifyContent: "center",
           top: "20%",
-          left: "50%",
-          transform: "translate(-50%, -50%)",
+          // left: "50%",
+          // transform: "translate(-50%, -50%)",
           color: "#fff",
+          width: "100%",
           fontFamily: "Source Sans Pro",
-          fontSize: "5em",
+          fontSize: "2em",
           fontWeight: 900,
           userSelect: "none",
         }}
