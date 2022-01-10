@@ -5,7 +5,7 @@ import Img from "gatsby-image"
 import Layout from "../components/layout"
 import SEO from "../components/seo"
 import AudioPlayer from "../components/audioplayer"
-import HappyBirthday from "../components/HappyBirthday"
+import HappyBirthday from "../components/happy-birthday"
 
 const BlogPostTemplate = ({ data, pageContext, location }) => {
   const post = data.markdownRemark

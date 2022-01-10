@@ -89,6 +89,7 @@ class Firework {
     this.shade = shade
     this.history = []
   }
+
   update(ctx, container, delta) {
     if (this.dead) return
 
